@@ -16,9 +16,12 @@
 package org.springframework.data.rest.webmvc.neo4j;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import java.math.BigDecimal;
 import java.util.Arrays;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
@@ -31,9 +34,13 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.data.neo4j.config.EnableNeo4jRepositories;
 import org.springframework.data.neo4j.config.Neo4jConfiguration;
 import org.springframework.data.rest.webmvc.AbstractWebIntegrationTests;
+import org.springframework.data.rest.webmvc.mongodb.*;
 import org.springframework.hateoas.Link;
+import org.springframework.http.MediaType;
+import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.transaction.annotation.EnableTransactionManagement;
+import org.springframework.web.util.UriComponentsBuilder;
 
 /**
  * Integration tests for exposed Neo4j repositories.
@@ -41,7 +48,7 @@ import org.springframework.transaction.annotation.EnableTransactionManagement;
  * @author Oliver Gierke
  */
 @ContextConfiguration
-@Ignore
+@Ignore()
 public class Neo4jWebTests extends AbstractWebIntegrationTests {
 
 	@Configuration
@@ -62,6 +69,8 @@ public class Neo4jWebTests extends AbstractWebIntegrationTests {
 	}
 
 	@Autowired TestDataPopulator populator;
+
+	ObjectMapper mapper = new ObjectMapper();
 
 	@Before
 	@Override
@@ -95,4 +104,33 @@ public class Neo4jWebTests extends AbstractWebIntegrationTests {
 		// Assert no customers anymore
 		assertDoesNotHaveContentLinkWithRel("self", request(customers));
 	}
+
+	@Test
+	public void returnConflictWhenConcurrentlyEditingVersionedEntity() throws Exception {
+		Link receiptLink = discoverUnique("receipts");
+
+		org.springframework.data.rest.webmvc.mongodb.Receipt receipt = new org.springframework.data.rest.webmvc.mongodb.Receipt();
+		receipt.setAmount(new BigDecimal(50));
+		receipt.setSaleItem("Springy Tacos");
+
+		String stringReceipt = mapper.writeValueAsString(receipt);
+
+		MockHttpServletResponse createdReceipt = postAndGet(receiptLink, stringReceipt, MediaType.APPLICATION_JSON);
+		Link tacosLink = assertHasLinkWithRel("self", createdReceipt);
+		assertJsonPathEquals("$.saleItem","Springy Tacos", createdReceipt);
+
+		UriComponentsBuilder builder = UriComponentsBuilder.fromUriString(tacosLink.getHref());
+		String concurrencyTag = createdReceipt.getHeader("ETag");
+
+		mvc.perform(patch(builder.build().toUriString())
+				.content("{ \"saleItem\" : \"SpringyBurritos\" }").contentType(MediaType.APPLICATION_JSON)
+				.header("If-Match",concurrencyTag))
+				.andExpect(status().isNoContent());
+
+		mvc.perform(patch(builder.build().toUriString())
+				.content("{ \"saleItem\" : \"SpringyTequila\" }").contentType(MediaType.APPLICATION_JSON)
+				.header("If-Match","\"falseETag\""))
+				.andExpect(status().isConflict());
+	}
+
 }

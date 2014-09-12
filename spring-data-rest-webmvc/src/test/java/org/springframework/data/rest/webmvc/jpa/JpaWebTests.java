@@ -578,12 +578,12 @@ public class JpaWebTests extends AbstractWebIntegrationTests {
         UriComponentsBuilder builder = UriComponentsBuilder.fromUriString(tacosLink.getHref());
         String concurrencyTag = createdReceipt.getHeader("ETag");
 
-        mvc.perform(patch(builder.build().toUriString())
+		mvc.perform(patch(builder.build().toUriString())
                 .content("{ \"saleItem\" : \"SpringyBurritos\" }").contentType(MediaType.APPLICATION_JSON)
                 .header("If-Match",concurrencyTag))
                 .andExpect(status().isNoContent());
 
-        mvc.perform(patch(builder.build().toUriString())
+		mvc.perform(patch(builder.build().toUriString())
                 .content("{ \"saleItem\" : \"SpringyTequila\" }").contentType(MediaType.APPLICATION_JSON)
                 .header("If-Match","\"falseETag\""))
                 .andExpect(status().isConflict());

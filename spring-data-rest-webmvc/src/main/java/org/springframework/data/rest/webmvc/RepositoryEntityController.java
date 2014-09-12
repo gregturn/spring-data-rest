@@ -43,8 +43,8 @@ import org.springframework.data.rest.core.mapping.ResourceMetadata;
 import org.springframework.data.rest.core.mapping.SearchResourceMappings;
 import org.springframework.data.rest.webmvc.support.BackendId;
 import org.springframework.data.rest.webmvc.support.DefaultedPageable;
-import org.springframework.data.rest.webmvc.support.RepositoryEntityLinks;
 import org.springframework.data.rest.webmvc.support.EtagValidator;
+import org.springframework.data.rest.webmvc.support.RepositoryEntityLinks;
 import org.springframework.data.web.PagedResourcesAssembler;
 import org.springframework.hateoas.Link;
 import org.springframework.hateoas.PagedResources;
@@ -94,7 +94,7 @@ class RepositoryEntityController extends AbstractRepositoryRestController implem
 		this.entityLinks = entityLinks;
 		this.config = config;
 		this.conversionService = conversionService;
-        this.etagValidator = etagValidator;
+		this.etagValidator = etagValidator;
 	}
 
 	/*
@@ -292,9 +292,9 @@ class RepositoryEntityController extends AbstractRepositoryRestController implem
 			return new ResponseEntity<Resource<?>>(HttpStatus.NOT_FOUND);
 		}
 
-        PersistentEntityResource persistentEntityResource = assembler.toFullResource(domainObj);
-        HttpHeaders httpHeaders = new HttpHeaders();
-        etagValidator.addEtagHeader(httpHeaders, persistentEntityResource);
+		PersistentEntityResource persistentEntityResource = assembler.toFullResource(domainObj);
+		HttpHeaders httpHeaders = new HttpHeaders();
+		etagValidator.addEtagHeader(httpHeaders, persistentEntityResource);
 
 		return new ResponseEntity<Resource<?>>(persistentEntityResource,httpHeaders, HttpStatus.OK);
 	}
@@ -302,7 +302,7 @@ class RepositoryEntityController extends AbstractRepositoryRestController implem
 	/**
 	 * <code>PUT /{repository}/{id}</code> - Updates an existing entity or creates one at exactly that place.
 	 *
-     * @param eTagMatch
+	 * @param eTagMatch
 	 * @param resourceInformation
 	 * @param payload
 	 * @param id
@@ -310,7 +310,9 @@ class RepositoryEntityController extends AbstractRepositoryRestController implem
 	 * @throws HttpRequestMethodNotSupportedException
 	 */
 	@RequestMapping(value = BASE_MAPPING + "/{id}", method = RequestMethod.PUT)
-	public ResponseEntity<? extends ResourceSupport> putItemResource(@RequestHeader(value = "If-Match", required = false) String eTagMatch, RootResourceInformation resourceInformation,
+	public ResponseEntity<? extends ResourceSupport> putItemResource(
+			@RequestHeader(value = "If-Match", required = false) String eTagMatch,
+			RootResourceInformation resourceInformation,
 			PersistentEntityResource payload, @BackendId Serializable id, PersistentEntityResourceAssembler assembler)
 			throws HttpRequestMethodNotSupportedException {
 
@@ -323,12 +325,12 @@ class RepositoryEntityController extends AbstractRepositoryRestController implem
 		RepositoryInvoker invoker = resourceInformation.getInvoker();
 		Object objectToSave = incomingWrapper.getBean();
 
-        Object domainObject = invoker.invokeFindOne(id);
-        if(domainObject != null) {
-            if (eTagMatch != null && !etagValidator.isEtagValueValid(eTagMatch, resourceInformation, domainObject)) {
-                etagValidator.throwOptimisticLockingException();
-            }
-        }
+		Object domainObject = invoker.invokeFindOne(id);
+		if (domainObject != null) {
+			if (eTagMatch != null && !etagValidator.isEtagValueValid(eTagMatch, resourceInformation, domainObject)) {
+				etagValidator.throwOptimisticLockingException();
+			}
+		}
 
 		return domainObject == null ? createAndReturn(objectToSave, invoker, assembler) : saveAndReturn(
 				objectToSave, invoker, PUT, assembler);
@@ -337,7 +339,7 @@ class RepositoryEntityController extends AbstractRepositoryRestController implem
 	/**
 	 * <code>PUT /{repository}/{id}</code> - Updates an existing entity or creates one at exactly that place.
 	 *
-     * @param eTagMatch
+	 * @param eTagMatch
 	 * @param resourceInformation
 	 * @param payload
 	 * @param id
@@ -345,30 +347,32 @@ class RepositoryEntityController extends AbstractRepositoryRestController implem
 	 * @throws HttpRequestMethodNotSupportedException
 	 * @throws ResourceNotFoundException
 	 */
-    @RequestMapping(value = BASE_MAPPING + "/{id}", method = RequestMethod.PATCH)
-    public ResponseEntity<ResourceSupport> patchItemResource(@RequestHeader(value = "If-Match", required = false) String eTagMatch, RootResourceInformation resourceInformation,
-            PersistentEntityResource payload, @BackendId Serializable id, PersistentEntityResourceAssembler assembler)
-            throws HttpRequestMethodNotSupportedException, ResourceNotFoundException {
+	@RequestMapping(value = BASE_MAPPING + "/{id}", method = RequestMethod.PATCH)
+	public ResponseEntity<ResourceSupport> patchItemResource(
+			@RequestHeader(value = "If-Match", required = false) String eTagMatch,
+			RootResourceInformation resourceInformation, PersistentEntityResource payload, @BackendId Serializable id,
+			PersistentEntityResourceAssembler assembler) throws HttpRequestMethodNotSupportedException,
+			ResourceNotFoundException {
 
-        resourceInformation.verifySupportedMethod(HttpMethod.PATCH, ResourceType.ITEM);
+		resourceInformation.verifySupportedMethod(HttpMethod.PATCH, ResourceType.ITEM);
 
-        Object domainObject = resourceInformation.getInvoker().invokeFindOne(id);
+		Object domainObject = resourceInformation.getInvoker().invokeFindOne(id);
 
-        if (domainObject == null) {
-            throw new ResourceNotFoundException();
-        }
+		if (domainObject == null) {
+			throw new ResourceNotFoundException();
+		}
 
-        if (eTagMatch != null && !etagValidator.isEtagValueValid(eTagMatch, resourceInformation, domainObject)) {
-            etagValidator.throwOptimisticLockingException();
-        }
+		if (eTagMatch != null && !etagValidator.isEtagValueValid(eTagMatch, resourceInformation, domainObject)) {
+			etagValidator.throwOptimisticLockingException();
+		}
 
-        return saveAndReturn(payload.getContent(), resourceInformation.getInvoker(), PATCH, assembler);
-    }
+		return saveAndReturn(payload.getContent(), resourceInformation.getInvoker(), PATCH, assembler);
+	}
 
 	/**
 	 * <code>DELETE /{repository}/{id}</code> - Deletes the entity backing the item resource.
 	 *
-     * @param eTagMatch
+	 * @param eTagMatch
 	 * @param resourceInformation
 	 * @param id
 	 * @return
@@ -377,8 +381,8 @@ class RepositoryEntityController extends AbstractRepositoryRestController implem
 	 */
 	@RequestMapping(value = BASE_MAPPING + "/{id}", method = RequestMethod.DELETE)
 	public ResponseEntity<?> deleteItemResource(@RequestHeader(value = "If-Match", required = false) String eTagMatch,
-            RootResourceInformation resourceInformation, @BackendId Serializable id)
-			throws ResourceNotFoundException, HttpRequestMethodNotSupportedException {
+			RootResourceInformation resourceInformation, @BackendId Serializable id) throws ResourceNotFoundException,
+			HttpRequestMethodNotSupportedException {
 
 		resourceInformation.verifySupportedMethod(HttpMethod.DELETE, ResourceType.ITEM);
 
@@ -389,9 +393,9 @@ class RepositoryEntityController extends AbstractRepositoryRestController implem
 			throw new ResourceNotFoundException();
 		}
 
-        if(eTagMatch != null && !etagValidator.isEtagValueValid(eTagMatch, resourceInformation, domainObj)){
-            etagValidator.throwOptimisticLockingException();
-        }
+		if (eTagMatch != null && !etagValidator.isEtagValueValid(eTagMatch, resourceInformation, domainObj)) {
+			etagValidator.throwOptimisticLockingException();
+		}
 
 		publisher.publishEvent(new BeforeDeleteEvent(domainObj));
 		invoker.invokeDelete(id);
@@ -423,8 +427,8 @@ class RepositoryEntityController extends AbstractRepositoryRestController implem
 
 		if (config.isReturnBodyOnUpdate()) {
 
-            PersistentEntityResource persistentEntityResource =  assembler.toFullResource(obj);
-            etagValidator.addEtagHeader(headers, persistentEntityResource);
+			PersistentEntityResource persistentEntityResource = assembler.toFullResource(obj);
+			etagValidator.addEtagHeader(headers, persistentEntityResource);
 
 			return ControllerUtils.toResponseEntity(HttpStatus.OK, headers, persistentEntityResource);
 		} else {
@@ -452,9 +456,9 @@ class RepositoryEntityController extends AbstractRepositoryRestController implem
 
 		PersistentEntityResource resource = config.isReturnBodyOnCreate() ? assembler.toFullResource(savedObject) : null;
 
-        if(resource != null){
-            etagValidator.addEtagHeader(headers, resource);
-        }
+		if (resource != null) {
+			etagValidator.addEtagHeader(headers, resource);
+		}
 
 		return ControllerUtils.toResponseEntity(HttpStatus.CREATED, headers, resource);
 	}

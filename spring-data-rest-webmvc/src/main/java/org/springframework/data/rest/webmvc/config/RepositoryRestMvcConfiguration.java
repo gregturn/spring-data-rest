@@ -88,10 +88,10 @@ import org.springframework.data.rest.webmvc.spi.BackendIdConverter;
 import org.springframework.data.rest.webmvc.spi.BackendIdConverter.DefaultIdConverter;
 import org.springframework.data.rest.webmvc.support.BackendIdHandlerMethodArgumentResolver;
 import org.springframework.data.rest.webmvc.support.DefaultedPageableHandlerMethodArgumentResolver;
+import org.springframework.data.rest.webmvc.support.EtagValidator;
 import org.springframework.data.rest.webmvc.support.HttpMethodHandlerMethodArgumentResolver;
 import org.springframework.data.rest.webmvc.support.JpaHelper;
 import org.springframework.data.rest.webmvc.support.RepositoryEntityLinks;
-import org.springframework.data.rest.webmvc.support.EtagValidator;
 import org.springframework.data.util.AnnotatedTypeScanner;
 import org.springframework.data.web.HateoasPageableHandlerMethodArgumentResolver;
 import org.springframework.data.web.HateoasSortHandlerMethodArgumentResolver;
@@ -134,6 +134,7 @@ import com.fasterxml.jackson.databind.SerializationFeature;
  * 
  * @author Oliver Gierke
  * @author Jon Brisbin
+ * @author Greg Turnquist
  */
 @Configuration
 @EnableHypermediaSupport(type = HypermediaType.HAL)
@@ -616,10 +617,10 @@ public class RepositoryRestMvcConfiguration extends HateoasAwareSpringDataWebCon
 		return OrderAwarePluginRegistry.create(converters);
 	}
 
-    @Bean
-    public EtagValidator etagValidator(){
-        return new EtagValidator(objectMapper(),defaultConversionService());
-    }
+	@Bean
+	public EtagValidator etagValidator() {
+		return new EtagValidator(objectMapper(), defaultConversionService());
+	}
 
 	private List<HandlerMethodArgumentResolver> defaultMethodArgumentResolvers() {
 
