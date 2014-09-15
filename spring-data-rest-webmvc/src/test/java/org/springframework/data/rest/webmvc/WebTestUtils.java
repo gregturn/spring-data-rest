@@ -17,11 +17,17 @@ package org.springframework.data.rest.webmvc;
 
 import static org.hamcrest.Matchers.*;
 import static org.junit.Assert.*;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
+import org.springframework.hateoas.Link;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
+import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockHttpServletRequest;
+import org.springframework.mock.web.MockHttpServletResponse;
+import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
@@ -29,8 +35,17 @@ import org.springframework.web.context.request.ServletRequestAttributes;
  * Helper methods for web integration testing.
  * 
  * @author Oliver Gierke
+ * @author Greg Turnquist
  */
 public class WebTestUtils {
+
+	public static MediaType DEFAULT_MEDIA_TYPE = org.springframework.hateoas.MediaTypes.HAL_JSON;
+
+	private MockMvc mvc;
+
+	public WebTestUtils(MockMvc mvc) {
+		this.mvc = mvc;
+	}
 
 	/**
 	 * Initializes web tests. Will register a {@link MockHttpServletRequest} for the current thread.
@@ -49,4 +64,25 @@ public class WebTestUtils {
 		assertThat(headers.getAllow(), hasSize(methods.length));
 		assertThat(headers.getAllow(), hasItems(methods));
 	}
+
+	public MockHttpServletResponse request(String href, MediaType contentType) throws Exception {
+		return mvc.perform(get(href).accept(contentType)). //
+				andExpect(status().isOk()). //
+				andExpect(content().contentType(contentType)). //
+				andReturn().getResponse();
+	}
+
+	public MockHttpServletResponse request(Link link) throws Exception {
+		return request(link.expand().getHref());
+	}
+
+	public MockHttpServletResponse request(Link link, MediaType mediaType) throws Exception {
+		return request(link.expand().getHref(), mediaType);
+	}
+
+	public MockHttpServletResponse request(String href) throws Exception {
+		return request(href, DEFAULT_MEDIA_TYPE);
+	}
+
+
 }

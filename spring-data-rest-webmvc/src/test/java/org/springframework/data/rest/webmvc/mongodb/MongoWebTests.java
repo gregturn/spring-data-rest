@@ -26,7 +26,9 @@ import org.junit.Before;
 import org.junit.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.rest.webmvc.AbstractWebIntegrationTests;
+import org.springframework.data.rest.webmvc.CommonWebTests;
 import org.springframework.data.rest.webmvc.RestMediaTypes;
+import org.springframework.data.rest.webmvc.WebTestUtils;
 import org.springframework.hateoas.Link;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockHttpServletResponse;
@@ -40,7 +42,7 @@ import com.jayway.jsonpath.JsonPath;
  * @author Oliver Gierke
  */
 @ContextConfiguration(classes = MongoDbRepositoryConfig.class)
-public class MongoWebTests extends AbstractWebIntegrationTests {
+public class MongoWebTests extends CommonWebTests {
 
 	@Autowired ProfileRepository repository;
 	@Autowired UserRepository userRepository;
@@ -88,17 +90,17 @@ public class MongoWebTests extends AbstractWebIntegrationTests {
 	@Test
 	public void foo() throws Exception {
 
-		Link profileLink = discoverUnique("profiles");
-		follow(profileLink).//
+		Link profileLink = linkTestUtils.discoverUnique("profiles");
+		linkTestUtils.follow(profileLink).//
 				andExpect(jsonPath("$._embedded.profiles").value(hasSize(2)));
 	}
 
 	@Test
 	public void rendersEmbeddedDocuments() throws Exception {
 
-		Link usersLink = discoverUnique("users");
-		Link userLink = assertHasContentLinkWithRel("self", request(usersLink));
-		follow(userLink).//
+		Link usersLink = linkTestUtils.discoverUnique("users");
+		Link userLink = assertHasContentLinkWithRel("self", webTestUtils.request(usersLink));
+		linkTestUtils.follow(userLink).//
 				andExpect(jsonPath("$.address.zipCode").value(is(notNullValue())));
 	}
 
@@ -108,22 +110,22 @@ public class MongoWebTests extends AbstractWebIntegrationTests {
 	@Test
 	public void executeQueryMethodWithPrimitiveReturnType() throws Exception {
 
-		Link profiles = discoverUnique("profiles");
-		Link profileSearches = discoverUnique(profiles, "search");
-		Link countByTypeLink = discoverUnique(profileSearches, "countByType");
+		Link profiles = linkTestUtils.discoverUnique("profiles");
+		Link profileSearches = linkTestUtils.discoverUnique(profiles, "search");
+		Link countByTypeLink = linkTestUtils.discoverUnique(profileSearches, "countByType");
 
 		assertThat(countByTypeLink.isTemplated(), is(true));
 		assertThat(countByTypeLink.getVariableNames(), hasItem("type"));
 
-		MockHttpServletResponse response = request(countByTypeLink.expand("Twitter"));
+		MockHttpServletResponse response = webTestUtils.request(countByTypeLink.expand("Twitter"));
 		assertThat(response.getContentAsString(), is("1"));
 	}
 
 	@Test
 	public void testname() throws Exception {
 
-		Link usersLink = discoverUnique("users");
-		Link userLink = assertHasContentLinkWithRel("self", request(usersLink));
+		Link usersLink = linkTestUtils.discoverUnique("users");
+		Link userLink = assertHasContentLinkWithRel("self", webTestUtils.request(usersLink));
 
 		MockHttpServletResponse response = patchAndGet(userLink,
 				"{\"lastname\" : null, \"address\" : { \"zipCode\" : \"ZIP\"}}", MediaType.APPLICATION_JSON);
@@ -135,8 +137,8 @@ public class MongoWebTests extends AbstractWebIntegrationTests {
 	@Test
 	public void testname2() throws Exception {
 
-		Link usersLink = discoverUnique("users");
-		Link userLink = assertHasContentLinkWithRel("self", request(usersLink));
+		Link usersLink = linkTestUtils.discoverUnique("users");
+		Link userLink = assertHasContentLinkWithRel("self", webTestUtils.request(usersLink));
 
 		MockHttpServletResponse response = patchAndGet(userLink,
 				"[{ \"op\": \"replace\", \"path\": \"/address/zipCode\", \"value\": \"ZIP\" },"
