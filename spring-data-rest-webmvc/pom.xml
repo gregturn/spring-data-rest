@@ -17,6 +17,7 @@
 
 	<properties>
 		<jsonpath>0.8.1</jsonpath>
+		<spring-security-core.version>3.2.4.RELEASE</spring-security-core.version>
 	</properties>
 
 	<dependencies>
@@ -107,6 +108,13 @@
 			<groupId>com.jayway.jsonpath</groupId>
 			<artifactId>json-path</artifactId>
 			<version>${jsonpath}</version>
+			<scope>test</scope>
+		</dependency>
+
+		<dependency>
+			<groupId>org.springframework.security</groupId>
+			<artifactId>spring-security-core</artifactId>
+			<version>${spring-security-core.version}</version>
 			<scope>test</scope>
 		</dependency>
 

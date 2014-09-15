@@ -20,12 +20,18 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 
+import org.springframework.context.annotation.Condition;
+import org.springframework.context.annotation.ConditionContext;
+import org.springframework.context.annotation.Conditional;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.core.type.AnnotatedTypeMetadata;
 import org.springframework.data.mapping.PersistentEntity;
 import org.springframework.data.rest.core.invoke.RepositoryInvoker;
 import org.springframework.data.rest.core.mapping.ResourceMetadata;
 import org.springframework.data.rest.core.mapping.SearchResourceMappings;
 import org.springframework.http.HttpMethod;
 import org.springframework.util.Assert;
+import org.springframework.util.ClassUtils;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
 
 /**
@@ -177,4 +183,24 @@ public class RootResourceInformation {
 			throw new HttpRequestMethodNotSupportedException(httpMethod.name(), stringMethods);
 		}
 	}
+
+	static class SpringSecurityCondition implements Condition {
+
+		@Override
+		public boolean matches(ConditionContext context, AnnotatedTypeMetadata metadata) {
+			return ClassUtils.isPresent("org.springframework.security.access.annotation.Secured",
+				context.getClassLoader());
+		}
+	}
+
+	@Conditional(value = SpringSecurityCondition.class)
+	@Configuration
+	static class SecurityChecker {
+
+		public SecurityChecker() {
+			System.out.println("Well, it appears that Spring Security is on the classpath!");
+		}
+
+	}
+
 }
