@@ -20,12 +20,10 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.mapping.PersistentEntity;
 import org.springframework.data.rest.core.invoke.RepositoryInvoker;
 import org.springframework.data.rest.core.mapping.ResourceMetadata;
 import org.springframework.data.rest.core.mapping.SearchResourceMappings;
-import org.springframework.data.rest.webmvc.security.AbstractSecurityChecker;
 import org.springframework.http.HttpMethod;
 import org.springframework.util.Assert;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
@@ -41,8 +39,6 @@ public class RootResourceInformation {
 	private final ResourceMetadata resourceMetadata;
 	private final RepositoryInvoker invoker;
 	private final PersistentEntity<?, ?> persistentEntity;
-
-	@Autowired AbstractSecurityChecker securityChecker;
 
 	public RootResourceInformation(ResourceMetadata metadata, PersistentEntity<?, ?> entity, RepositoryInvoker invoker) {
 

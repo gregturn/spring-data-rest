@@ -21,6 +21,7 @@ import static org.junit.Assert.*;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.rest.webmvc.AbstractControllerIntegrationTests;
@@ -43,14 +44,17 @@ import org.springframework.transaction.annotation.Transactional;
 @Transactional
 public class SecurityIntegrationTests extends AbstractControllerIntegrationTests {
 
+	@Autowired ApplicationContext context;
 	@Autowired AbstractSecurityChecker securityChecker;
 
 	@Test
 	public void testSecuredRoot() {
 
 		assertThat(securityChecker.secured(), is(true));
+		assertThat(context.getBean(SecurityChecker.class), notNullValue());
 
 		RootResourceInformation info = getResourceInformation(Book.class);
+
 		assertThat(info.supports(HttpMethod.GET, ResourceType.COLLECTION), is(true));
 		assertThat(info.supports(HttpMethod.POST, ResourceType.COLLECTION), is(true));
 	}

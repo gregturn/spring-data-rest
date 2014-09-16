@@ -77,6 +77,8 @@ import org.springframework.data.rest.webmvc.ServerHttpRequestMethodArgumentResol
 import org.springframework.data.rest.webmvc.alps.AlpsJsonHttpMessageConverter;
 import org.springframework.data.rest.webmvc.alps.AlpsResourceProcessor;
 import org.springframework.data.rest.webmvc.alps.RootResourceInformationToAlpsDescriptorConverter;
+import org.springframework.data.rest.webmvc.condition.ConditionalOnClass;
+import org.springframework.data.rest.webmvc.condition.ConditionalOnMissingClass;
 import org.springframework.data.rest.webmvc.convert.StringToDistanceConverter;
 import org.springframework.data.rest.webmvc.convert.StringToPointConverter;
 import org.springframework.data.rest.webmvc.convert.UriListHttpMessageConverter;
@@ -84,6 +86,9 @@ import org.springframework.data.rest.webmvc.json.DomainObjectReader;
 import org.springframework.data.rest.webmvc.json.Jackson2DatatypeHelper;
 import org.springframework.data.rest.webmvc.json.PersistentEntityJackson2Module;
 import org.springframework.data.rest.webmvc.json.PersistentEntityToJsonSchemaConverter;
+import org.springframework.data.rest.webmvc.security.AbstractSecurityChecker;
+import org.springframework.data.rest.webmvc.security.NoSecurityChecker;
+import org.springframework.data.rest.webmvc.security.SecurityChecker;
 import org.springframework.data.rest.webmvc.spi.BackendIdConverter;
 import org.springframework.data.rest.webmvc.spi.BackendIdConverter.DefaultIdConverter;
 import org.springframework.data.rest.webmvc.support.BackendIdHandlerMethodArgumentResolver;
@@ -113,6 +118,7 @@ import org.springframework.http.converter.HttpMessageConverter;
 import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
 import org.springframework.plugin.core.OrderAwarePluginRegistry;
 import org.springframework.plugin.core.PluginRegistry;
+import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.util.ClassUtils;
 import org.springframework.web.method.support.HandlerMethodArgumentResolver;
 import org.springframework.web.servlet.mvc.method.annotation.ExceptionHandlerExceptionResolver;
@@ -686,6 +692,18 @@ public class RepositoryRestMvcConfiguration extends HateoasAwareSpringDataWebCon
 	@Bean
 	public AlpsResourceProcessor alpsResourceProcessor() {
 		return new AlpsResourceProcessor(config());
+	}
+
+	@Bean
+	@ConditionalOnClass(AuthenticationManager.class)
+	public SecurityChecker securityChecker() {
+		return new SecurityChecker();
+	}
+
+	@Bean
+	@ConditionalOnMissingClass(AuthenticationManager.class)
+	public NoSecurityChecker noSecurityChecker() {
+		return new NoSecurityChecker();
 	}
 
 	/**

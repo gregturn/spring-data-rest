@@ -27,6 +27,7 @@ import org.springframework.data.rest.core.invoke.RepositoryInvokerFactory;
 import org.springframework.data.rest.core.mapping.ResourceMappings;
 import org.springframework.data.rest.core.mapping.ResourceMetadata;
 import org.springframework.data.rest.webmvc.config.RepositoryRestMvcConfiguration;
+import org.springframework.data.rest.webmvc.security.AbstractSecurityChecker;
 import org.springframework.data.rest.webmvc.support.Projector;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.test.context.ContextConfiguration;
