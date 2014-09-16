@@ -13,13 +13,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.springframework.data.rest.webmvc;
+package org.springframework.data.rest.webmvc.security;
 
 import static org.hamcrest.CoreMatchers.*;
 import static org.junit.Assert.*;
 
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.data.rest.webmvc.AbstractControllerIntegrationTests;
+import org.springframework.data.rest.webmvc.ResourceType;
+import org.springframework.data.rest.webmvc.RootResourceInformation;
 import org.springframework.data.rest.webmvc.jpa.Book;
 import org.springframework.data.rest.webmvc.jpa.JpaRepositoryConfig;
 import org.springframework.http.HttpMethod;
@@ -33,16 +39,30 @@ import org.springframework.transaction.annotation.Transactional;
  * @author Greg Turnquist
  */
 @RunWith(SpringJUnit4ClassRunner.class)
-@ContextConfiguration(classes = {JpaRepositoryConfig.class, RootResourceInformation.SecurityChecker.class})
+@ContextConfiguration(classes = {JpaRepositoryConfig.class, SecurityIntegrationTests.SecurityConfiguration.class})
 @Transactional
 public class SecurityIntegrationTests extends AbstractControllerIntegrationTests {
+
+	@Autowired AbstractSecurityChecker securityChecker;
 
 	@Test
 	public void testSecuredRoot() {
 
+		assertThat(securityChecker.secured(), is(true));
+
 		RootResourceInformation info = getResourceInformation(Book.class);
 		assertThat(info.supports(HttpMethod.GET, ResourceType.COLLECTION), is(true));
 		assertThat(info.supports(HttpMethod.POST, ResourceType.COLLECTION), is(true));
+	}
+
+	@Configuration
+	static class SecurityConfiguration {
+
+		@Bean
+		public SecurityChecker securityChecker() {
+			return new SecurityChecker();
+		}
+
 	}
 
 }

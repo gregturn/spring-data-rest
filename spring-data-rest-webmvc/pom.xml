@@ -115,7 +115,7 @@
 			<groupId>org.springframework.security</groupId>
 			<artifactId>spring-security-core</artifactId>
 			<version>${spring-security-core.version}</version>
-			<scope>test</scope>
+			<optional>true</optional>
 		</dependency>
 
 	</dependencies>
