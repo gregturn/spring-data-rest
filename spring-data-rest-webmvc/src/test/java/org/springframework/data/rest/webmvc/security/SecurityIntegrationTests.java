@@ -18,18 +18,17 @@ package org.springframework.data.rest.webmvc.security;
 import static org.hamcrest.CoreMatchers.*;
 import static org.junit.Assert.*;
 
+import java.util.Arrays;
+
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.data.rest.webmvc.AbstractControllerIntegrationTests;
-import org.springframework.data.rest.webmvc.ResourceType;
-import org.springframework.data.rest.webmvc.RootResourceInformation;
-import org.springframework.data.rest.webmvc.jpa.Book;
+import org.springframework.data.rest.webmvc.AbstractWebIntegrationTests;
 import org.springframework.data.rest.webmvc.jpa.JpaRepositoryConfig;
-import org.springframework.http.HttpMethod;
+import org.springframework.hateoas.Link;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import org.springframework.transaction.annotation.Transactional;
@@ -42,21 +41,32 @@ import org.springframework.transaction.annotation.Transactional;
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(classes = {JpaRepositoryConfig.class, SecurityIntegrationTests.SecurityConfiguration.class})
 @Transactional
-public class SecurityIntegrationTests extends AbstractControllerIntegrationTests {
+public class SecurityIntegrationTests extends AbstractWebIntegrationTests {
 
 	@Autowired ApplicationContext context;
 	@Autowired AbstractSecurityChecker securityChecker;
 
+	@Override
+	protected Iterable<String> expectedRootLinkRels() {
+		return Arrays.asList("people", "authors", "books");
+	}
+
+	@Override
+	public void setUp() {
+		super.setUp();
+	}
+
 	@Test
-	public void testSecuredRoot() {
+	public void testSecuritySettings() {
 
 		assertThat(securityChecker.secured(), is(true));
 		assertThat(context.getBean(SecurityChecker.class), notNullValue());
+	}
 
-		RootResourceInformation info = getResourceInformation(Book.class);
+	@Test
+	public void testGettingPeople() throws Exception {
 
-		assertThat(info.supports(HttpMethod.GET, ResourceType.COLLECTION), is(true));
-		assertThat(info.supports(HttpMethod.POST, ResourceType.COLLECTION), is(true));
+		Link peopleLink = linkTestUtils.discoverUnique("people");
 	}
 
 	@Configuration
