@@ -27,13 +27,13 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.rest.webmvc.AbstractControllerIntegrationTests;
+import org.springframework.data.rest.webmvc.LinkTestUtils;
 import org.springframework.data.rest.webmvc.jpa.JpaRepositoryConfig;
 import org.springframework.hateoas.Link;
 import org.springframework.hateoas.LinkDiscoverer;
 import org.springframework.hateoas.LinkDiscoverers;
 import org.springframework.hateoas.core.JsonPathLinkDiscoverer;
 import org.springframework.http.MediaType;
-import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.web.WebAppConfiguration;
 import org.springframework.test.web.servlet.MockMvc;
@@ -52,6 +52,8 @@ public class AlpsControllerIntegrationTests extends AbstractControllerIntegratio
 	@Autowired WebApplicationContext context;
 	@Autowired LinkDiscoverers discoverers;
 
+	private LinkTestUtils linkTestUtils;
+
 	@Configuration
 	static class Config {
 
@@ -66,7 +68,9 @@ public class AlpsControllerIntegrationTests extends AbstractControllerIntegratio
 
 	@Before
 	public void setUp() {
+
 		mvc = MockMvcBuilders.webAppContextSetup(context).build();
+		linkTestUtils = new LinkTestUtils(mvc, discoverers);
 	}
 
 	/**
@@ -86,10 +90,10 @@ public class AlpsControllerIntegrationTests extends AbstractControllerIntegratio
 	@Test
 	public void alpsResourceExposesResourcePerCollectionResource() throws Exception {
 
-		Link profileLink = discoverUnique("/", "profile");
+		Link profileLink = linkTestUtils.discoverUnique("/", "profile");
 
-		assertThat(discoverUnique(profileLink.getHref(), "orders"), is(notNullValue()));
-		assertThat(discoverUnique(profileLink.getHref(), "people"), is(notNullValue()));
+		assertThat(linkTestUtils.discoverUnique(profileLink.getHref(), "orders"), is(notNullValue()));
+		assertThat(linkTestUtils.discoverUnique(profileLink.getHref(), "people"), is(notNullValue()));
 	}
 
 	/**
@@ -98,8 +102,8 @@ public class AlpsControllerIntegrationTests extends AbstractControllerIntegratio
 	@Test
 	public void exposesAlpsCollectionResources() throws Exception {
 
-		Link profileLink = discoverUnique("/", "profile");
-		Link peopleLink = discoverUnique(profileLink.getHref(), "people");
+		Link profileLink = linkTestUtils.discoverUnique("/", "profile");
+		Link peopleLink = linkTestUtils.discoverUnique(profileLink.getHref(), "people");
 
 		mvc.perform(get(peopleLink.getHref())).//
 				andDo(print()).//
@@ -107,13 +111,4 @@ public class AlpsControllerIntegrationTests extends AbstractControllerIntegratio
 				andExpect(jsonPath("$.descriptors[*].name", hasItems("people", "person")));
 	}
 
-	private Link discoverUnique(String href, String rel) throws Exception {
-
-		MockHttpServletResponse response = mvc.perform(get(href)).//
-				andExpect(status().is2xxSuccessful()).//
-				andReturn().getResponse();
-
-		LinkDiscoverer discoverer = discoverers.getLinkDiscovererFor(MediaType.valueOf(response.getContentType()));
-		return discoverer.findLinkWithRel(rel, response.getContentAsString());
-	}
 }

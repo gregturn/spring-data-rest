@@ -15,23 +15,30 @@
  */
 package org.springframework.data.rest.webmvc.security;
 
-import static org.hamcrest.CoreMatchers.*;
+import static org.hamcrest.Matchers.*;
 import static org.junit.Assert.*;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 import java.util.Arrays;
 
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.rest.webmvc.AbstractWebIntegrationTests;
+import org.springframework.data.rest.webmvc.LinkTestUtils;
 import org.springframework.data.rest.webmvc.jpa.JpaRepositoryConfig;
 import org.springframework.hateoas.Link;
+import org.springframework.hateoas.LinkDiscoverer;
+import org.springframework.hateoas.core.JsonPathLinkDiscoverer;
+import org.springframework.http.MediaType;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.context.WebApplicationContext;
 
 /**
  * Test Spring Data REST in the context of being locked down by Spring Security
@@ -39,12 +46,30 @@ import org.springframework.transaction.annotation.Transactional;
  * @author Greg Turnquist
  */
 @RunWith(SpringJUnit4ClassRunner.class)
-@ContextConfiguration(classes = {JpaRepositoryConfig.class, SecurityIntegrationTests.SecurityConfiguration.class})
+@ContextConfiguration(classes = {JpaRepositoryConfig.class, SecurityIntegrationTests.Config.class})
 @Transactional
 public class SecurityIntegrationTests extends AbstractWebIntegrationTests {
 
-	@Autowired ApplicationContext context;
+	@Autowired WebApplicationContext context;
 	@Autowired AbstractSecurityChecker securityChecker;
+
+	LinkTestUtils linkTestUtils;
+
+	@Configuration
+	static class Config {
+
+		@Bean
+		public SecurityChecker securityChecker() {
+			return new SecurityChecker();
+		}
+
+		@Bean
+		public LinkDiscoverer alpsLinkDiscoverer() {
+			return new JsonPathLinkDiscoverer("$.descriptors[?(@.name == '%s')].href",
+					MediaType.valueOf("application/alps+json"));
+		}
+
+	}
 
 	@Override
 	protected Iterable<String> expectedRootLinkRels() {
@@ -53,7 +78,9 @@ public class SecurityIntegrationTests extends AbstractWebIntegrationTests {
 
 	@Override
 	public void setUp() {
+
 		super.setUp();
+		linkTestUtils = new LinkTestUtils(mvc, discoverers);
 	}
 
 	@Test
@@ -64,19 +91,17 @@ public class SecurityIntegrationTests extends AbstractWebIntegrationTests {
 	}
 
 	@Test
-	public void testGettingPeople() throws Exception {
+	public void testRestrictedAlpsData() throws Exception {
 
-		Link peopleLink = linkTestUtils.discoverUnique("people");
-	}
+		Link profileLink = linkTestUtils.discoverUnique("/", "profile");
+		Link peopleLink = linkTestUtils.discoverUnique(profileLink.getHref(), "people");
 
-	@Configuration
-	static class SecurityConfiguration {
+		assertThat(peopleLink, is(notNullValue()));
 
-		@Bean
-		public SecurityChecker securityChecker() {
-			return new SecurityChecker();
-		}
-
+		mvc.perform(get(peopleLink.getHref())).//
+				andDo(print()).//
+				andExpect(jsonPath("$.descriptors[*].id", hasItems("get-people", "get-person", "create-people",
+					"update-person", "patch-person", "delete-person")));
 	}
 
 }

@@ -694,18 +694,6 @@ public class RepositoryRestMvcConfiguration extends HateoasAwareSpringDataWebCon
 		return new AlpsResourceProcessor(config());
 	}
 
-	@Bean
-	@ConditionalOnClass(AuthenticationManager.class)
-	public SecurityChecker securityChecker() {
-		return new SecurityChecker();
-	}
-
-	@Bean
-	@ConditionalOnMissingClass(AuthenticationManager.class)
-	public NoSecurityChecker noSecurityChecker() {
-		return new NoSecurityChecker();
-	}
-
 	/**
 	 * Override this method to add additional configuration.
 	 * 

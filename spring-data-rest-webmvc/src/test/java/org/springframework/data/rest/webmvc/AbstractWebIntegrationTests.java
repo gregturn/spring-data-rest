@@ -59,8 +59,8 @@ public abstract class AbstractWebIntegrationTests {
 
 	private static final String CONTENT_LINK_JSONPATH = "$._embedded.._links.%s.href[0]";
 
-	@Autowired WebApplicationContext context;
-	@Autowired LinkDiscoverers discoverers;
+	@Autowired protected WebApplicationContext context;
+	@Autowired protected LinkDiscoverers discoverers;
 
 	protected WebTestUtils webTestUtils;
 	protected LinkTestUtils linkTestUtils;
@@ -69,8 +69,7 @@ public abstract class AbstractWebIntegrationTests {
 	@Before
 	public void setUp() {
 
-		mvc = MockMvcBuilders.webAppContextSetup(context).//
-				defaultRequest(get("/").accept(WebTestUtils.DEFAULT_MEDIA_TYPE)).build();
+		mvc = MockMvcBuilders.webAppContextSetup(context).build();
 		webTestUtils = new WebTestUtils(mvc);
 		linkTestUtils = new LinkTestUtils(mvc, discoverers);
 	}
