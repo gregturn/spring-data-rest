@@ -1,9 +1,7 @@
 package org.springframework.data.rest.webmvc.security;
 
-public class SecurityChecker implements AbstractSecurityChecker {
+public interface SecurityChecker {
 
-	@Override
-	public boolean secured() {
-		return true;
-	}
+	public boolean secured();
+
 }

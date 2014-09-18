@@ -44,7 +44,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class NoSecurityIntegrationTests extends AbstractWebIntegrationTests {
 
 	@Autowired ApplicationContext context;
-	@Autowired AbstractSecurityChecker securityChecker;
+	@Autowired SecurityChecker securityChecker;
 
 	@Override
 	protected Iterable<String> expectedRootLinkRels() {

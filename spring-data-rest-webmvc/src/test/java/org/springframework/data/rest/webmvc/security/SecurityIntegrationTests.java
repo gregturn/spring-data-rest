@@ -51,7 +51,7 @@ import org.springframework.web.context.WebApplicationContext;
 public class SecurityIntegrationTests extends AbstractWebIntegrationTests {
 
 	@Autowired WebApplicationContext context;
-	@Autowired AbstractSecurityChecker securityChecker;
+	@Autowired SecurityChecker securityChecker;
 
 	LinkTestUtils linkTestUtils;
 
@@ -60,7 +60,7 @@ public class SecurityIntegrationTests extends AbstractWebIntegrationTests {
 
 		@Bean
 		public SecurityChecker securityChecker() {
-			return new SecurityChecker();
+			return new SpringSecurityChecker();
 		}
 
 		@Bean
@@ -87,7 +87,7 @@ public class SecurityIntegrationTests extends AbstractWebIntegrationTests {
 	public void testSecuritySettings() {
 
 		assertThat(securityChecker.secured(), is(true));
-		assertThat(context.getBean(SecurityChecker.class), notNullValue());
+		assertThat(context.getBean(SpringSecurityChecker.class), notNullValue());
 	}
 
 	@Test
