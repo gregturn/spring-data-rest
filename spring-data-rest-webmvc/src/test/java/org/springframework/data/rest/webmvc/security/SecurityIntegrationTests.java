@@ -58,7 +58,8 @@ public class SecurityIntegrationTests extends AbstractWebIntegrationTests {
 
 	@Autowired WebApplicationContext context;
 	@Autowired SecurityChecker securityChecker;
-	@Autowired SecurePersonRepository repository;
+	@Autowired SecurePersonRepository personRepository;
+	@Autowired SecureOrderRepository orderRepository;
 
 	LinkTestUtils linkTestUtils;
 
@@ -96,29 +97,35 @@ public class SecurityIntegrationTests extends AbstractWebIntegrationTests {
 		SecurityContextHolder.clearContext();
 	}
 
+	//=================================================================
+
 	@Test
 	public void testSecuritySettings() {
 		assertThat(securityChecker.secured(), is(true));
 	}
 
+	//=================================================================
+
 	@Test(expected = AuthenticationCredentialsNotFoundException.class)
-	public void testNoCredentialsForDeleteAll() {
-		repository.deleteAll();
+	public void testNoCredentialsForPeopleDeleteAll() {
+		personRepository.deleteAll();
 	}
 
 	@Test(expected = AccessDeniedException.class)
-	public void testUserCredentialsForDeleteAll() {
+	public void testUserCredentialsForPeopleDeleteAll() {
 
 		SecurityContextHolder.getContext().setAuthentication(new UsernamePasswordAuthenticationToken("user", "user"));
-		repository.deleteAll();
+		personRepository.deleteAll();
 	}
 
 	@Test
-	public void testAdminCredentialsForDeleteAll() {
+	public void testAdminCredentialsForPeopleDeleteAll() {
 
 		SecurityContextHolder.getContext().setAuthentication(new UsernamePasswordAuthenticationToken("admin", "admin"));
-		repository.deleteAll();
+		personRepository.deleteAll();
 	}
+
+	//=================================================================
 
 	/**
 	 * TODO: Is this a Spring Data or Spring Security bug?
@@ -128,26 +135,77 @@ public class SecurityIntegrationTests extends AbstractWebIntegrationTests {
 	 */
 	@Ignore
 	@Test(expected = AuthenticationCredentialsNotFoundException.class)
-	public void testNoCredentialsForFindAll() {
-		repository.findAll();
+	public void testNoCredentialsForPeopleFindAll() {
+		personRepository.findAll();
 	}
 
 	@Test
-	public void testUserCredentialsForFindAll() {
+	public void testUserCredentialsForPeopleFindAll() {
 
 		SecurityContextHolder.getContext().setAuthentication(new UsernamePasswordAuthenticationToken("user", "user"));
-		repository.findAll();
+		personRepository.findAll();
 	}
 
 	@Test
-	public void testAdminCredentialsForFindAll() {
+	public void testAdminCredentialsForPeopleFindAll() {
 
 		SecurityContextHolder.getContext().setAuthentication(new UsernamePasswordAuthenticationToken("admin", "admin"));
-		repository.findAll();
+		personRepository.findAll();
+	}
+
+	//=================================================================
+
+	@Test(expected = AuthenticationCredentialsNotFoundException.class)
+	public void testNoCredentialsForOrdersDeleteAll() {
+		orderRepository.deleteAll();
+	}
+
+	@Test(expected = AccessDeniedException.class)
+	public void testUserCredentialsForOrdersDeleteAll() {
+
+		SecurityContextHolder.getContext().setAuthentication(new UsernamePasswordAuthenticationToken("user", "user"));
+		orderRepository.deleteAll();
 	}
 
 	@Test
-	public void testNoCredentialsForAlpsPeople() throws Exception {
+	public void testAdminCredentialsForOrdersDeleteAll() {
+
+		SecurityContextHolder.getContext().setAuthentication(new UsernamePasswordAuthenticationToken("admin", "admin"));
+		orderRepository.deleteAll();
+	}
+
+	//=================================================================
+
+	/**
+	 * TODO: Is this a Spring Data or Spring Security bug?
+	 *
+	 * The class is flagged with @Secured("ROLE_USER"), meaning findAll should require an authentication credential,
+	 * but for some reason it does not. This needs to be solved before release.
+	 */
+	@Ignore
+	@Test(expected = AuthenticationCredentialsNotFoundException.class)
+	public void testNoCredentialsForOrdersFindAll() {
+		orderRepository.findAll();
+	}
+
+	@Test
+	public void testUserCredentialsForOrdersFindAll() {
+
+		SecurityContextHolder.getContext().setAuthentication(new UsernamePasswordAuthenticationToken("user", "user"));
+		orderRepository.findAll();
+	}
+
+	@Test
+	public void testAdminCredentialsForOrdersFindAll() {
+
+		SecurityContextHolder.getContext().setAuthentication(new UsernamePasswordAuthenticationToken("admin", "admin"));
+		orderRepository.findAll();
+	}
+
+	//=================================================================
+
+	@Test
+	public void testNoCredentialsForAlpsPeoplePeople() throws Exception {
 
 		Link profileLink = linkTestUtils.discoverUnique("/", "profile");
 		Link peopleLink = linkTestUtils.discoverUnique(profileLink.getHref(), "people");
