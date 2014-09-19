@@ -18,11 +18,11 @@ package org.springframework.data.rest.webmvc.security;
 import static org.hamcrest.Matchers.*;
 import static org.junit.Assert.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
-import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 import java.util.Arrays;
 
+import org.junit.After;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -30,11 +30,14 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.rest.webmvc.AbstractWebIntegrationTests;
 import org.springframework.data.rest.webmvc.LinkTestUtils;
-import org.springframework.data.rest.webmvc.jpa.JpaRepositoryConfig;
 import org.springframework.hateoas.Link;
 import org.springframework.hateoas.LinkDiscoverer;
 import org.springframework.hateoas.core.JsonPathLinkDiscoverer;
 import org.springframework.http.MediaType;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.authentication.AuthenticationCredentialsNotFoundException;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import org.springframework.transaction.annotation.Transactional;
@@ -46,12 +49,14 @@ import org.springframework.web.context.WebApplicationContext;
  * @author Greg Turnquist
  */
 @RunWith(SpringJUnit4ClassRunner.class)
-@ContextConfiguration(classes = {JpaRepositoryConfig.class, SecurityIntegrationTests.Config.class})
+@ContextConfiguration(classes = {SecureJpaConfiguration.class, SecurityIntegrationTests.Config.class,
+		SecurityConfiguration.class})
 @Transactional
 public class SecurityIntegrationTests extends AbstractWebIntegrationTests {
 
 	@Autowired WebApplicationContext context;
 	@Autowired SecurityChecker securityChecker;
+	@Autowired SecurePersonRepository repository;
 
 	LinkTestUtils linkTestUtils;
 
@@ -73,7 +78,7 @@ public class SecurityIntegrationTests extends AbstractWebIntegrationTests {
 
 	@Override
 	protected Iterable<String> expectedRootLinkRels() {
-		return Arrays.asList("people", "authors", "books");
+		return Arrays.asList("people");
 	}
 
 	@Override
@@ -83,11 +88,31 @@ public class SecurityIntegrationTests extends AbstractWebIntegrationTests {
 		linkTestUtils = new LinkTestUtils(mvc, discoverers);
 	}
 
+	@After
+	public void clearContext() {
+		SecurityContextHolder.clearContext();
+	}
+
 	@Test
 	public void testSecuritySettings() {
-
 		assertThat(securityChecker.secured(), is(true));
-		assertThat(context.getBean(SpringSecurityChecker.class), notNullValue());
+	}
+
+	@Test(expected = AuthenticationCredentialsNotFoundException.class)
+	public void testNoCredentialsForDeleteAll() {
+		repository.deleteAll();
+	}
+
+	@Test(expected = AccessDeniedException.class)
+	public void testUserCredentialsForDeleteAll() {
+		SecurityContextHolder.getContext().setAuthentication(new UsernamePasswordAuthenticationToken("user", "user"));
+		repository.deleteAll();
+	}
+
+	@Test
+	public void testAdminCredentialsForDeleteAll() {
+		SecurityContextHolder.getContext().setAuthentication(new UsernamePasswordAuthenticationToken("admin", "admin"));
+		repository.deleteAll();
 	}
 
 	@Test
@@ -99,7 +124,7 @@ public class SecurityIntegrationTests extends AbstractWebIntegrationTests {
 		assertThat(peopleLink, is(notNullValue()));
 
 		mvc.perform(get(peopleLink.getHref())).//
-				andDo(print()).//
+				//andDo(print()).//
 				andExpect(jsonPath("$.descriptors[*].id", hasItems("get-people", "get-person", "create-people",
 					"update-person", "patch-person", "delete-person")));
 	}
