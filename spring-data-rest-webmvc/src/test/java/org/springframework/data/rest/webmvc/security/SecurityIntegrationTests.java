@@ -21,8 +21,11 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
+import java.lang.reflect.Method;
 import java.util.Arrays;
 
+import org.aopalliance.intercept.MethodInvocation;
+import org.apache.commons.lang.reflect.MethodUtils;
 import org.junit.After;
 import org.junit.Ignore;
 import org.junit.Test;
@@ -37,9 +40,12 @@ import org.springframework.hateoas.LinkDiscoverer;
 import org.springframework.hateoas.core.JsonPathLinkDiscoverer;
 import org.springframework.http.MediaType;
 import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.access.intercept.aopalliance.MethodSecurityInterceptor;
 import org.springframework.security.authentication.AuthenticationCredentialsNotFoundException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.authority.AuthorityUtils;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.util.SimpleMethodInvocation;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import org.springframework.transaction.annotation.Transactional;
@@ -95,6 +101,46 @@ public class SecurityIntegrationTests extends AbstractWebIntegrationTests {
 	@After
 	public void clearContext() {
 		SecurityContextHolder.clearContext();
+	}
+
+	//=================================================================
+
+	@Autowired MethodSecurityInterceptor smi;
+
+	@Test
+	public void deleteAllAccessDenied() throws Throwable {
+		SecurityContextHolder.getContext().setAuthentication(new UsernamePasswordAuthenticationToken("user", "user", AuthorityUtils.createAuthorityList("ROLE_USER")));
+
+		assertThat(hasAccess(SecurePersonRepository.class, "deleteAll"), is(false));
+	}
+
+	@Test
+	public void deleteAllAccessGranted() throws Throwable {
+		SecurityContextHolder.getContext().setAuthentication(new UsernamePasswordAuthenticationToken("user", "user", AuthorityUtils.createAuthorityList("ROLE_ADMIN")));
+
+		assertThat(hasAccess(SecurePersonRepository.class, "deleteAll"), is(true));
+	}
+
+	private boolean hasAccess(Class<?> clazz, String methodName, Class<?>... argTypes) throws Throwable {
+		Method method = MethodUtils.getAccessibleMethod(clazz, methodName, argTypes);
+		MethodInvocation mi = new NoOpMethodInvocation(personRepository, method);
+		try {
+			smi.invoke(mi);
+			return true;
+		} catch (AccessDeniedException denied) {
+			return false;
+		}
+	}
+
+	private class NoOpMethodInvocation extends SimpleMethodInvocation {
+		public NoOpMethodInvocation(Object targetObject, Method method,
+				Object... arguments) {
+			super(targetObject, method, arguments);
+		}
+
+		public Object proceed() throws Throwable {
+			return null;
+		}
 	}
 
 	//=================================================================
