@@ -55,6 +55,7 @@ import org.springframework.web.context.WebApplicationContext;
  * Test Spring Data REST in the context of being locked down by Spring Security
  *
  * @author Greg Turnquist
+ * @author Rob Winch
  */
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(classes = {SecureJpaConfiguration.class, SecurityIntegrationTests.Config.class,
@@ -64,10 +65,14 @@ public class SecurityIntegrationTests extends AbstractWebIntegrationTests {
 
 	@Autowired WebApplicationContext context;
 	@Autowired SecurityChecker securityChecker;
+
+	@Autowired MethodSecurityInterceptor smi;
+
 	@Autowired SecurePersonRepository personRepository;
 	@Autowired SecureOrderRepository orderRepository;
 
 	LinkTestUtils linkTestUtils;
+	SecurityTestUtils securityTestUtils;
 
 	@Configuration
 	static class Config {
@@ -96,51 +101,12 @@ public class SecurityIntegrationTests extends AbstractWebIntegrationTests {
 
 		super.setUp();
 		linkTestUtils = new LinkTestUtils(mvc, discoverers);
+		securityTestUtils = new SecurityTestUtils(smi);
 	}
 
 	@After
 	public void clearContext() {
 		SecurityContextHolder.clearContext();
-	}
-
-	//=================================================================
-
-	@Autowired MethodSecurityInterceptor smi;
-
-	@Test
-	public void deleteAllAccessDenied() throws Throwable {
-		SecurityContextHolder.getContext().setAuthentication(new UsernamePasswordAuthenticationToken("user", "user", AuthorityUtils.createAuthorityList("ROLE_USER")));
-
-		assertThat(hasAccess(SecurePersonRepository.class, "deleteAll"), is(false));
-	}
-
-	@Test
-	public void deleteAllAccessGranted() throws Throwable {
-		SecurityContextHolder.getContext().setAuthentication(new UsernamePasswordAuthenticationToken("user", "user", AuthorityUtils.createAuthorityList("ROLE_ADMIN")));
-
-		assertThat(hasAccess(SecurePersonRepository.class, "deleteAll"), is(true));
-	}
-
-	private boolean hasAccess(Class<?> clazz, String methodName, Class<?>... argTypes) throws Throwable {
-		Method method = MethodUtils.getAccessibleMethod(clazz, methodName, argTypes);
-		MethodInvocation mi = new NoOpMethodInvocation(personRepository, method);
-		try {
-			smi.invoke(mi);
-			return true;
-		} catch (AccessDeniedException denied) {
-			return false;
-		}
-	}
-
-	private class NoOpMethodInvocation extends SimpleMethodInvocation {
-		public NoOpMethodInvocation(Object targetObject, Method method,
-				Object... arguments) {
-			super(targetObject, method, arguments);
-		}
-
-		public Object proceed() throws Throwable {
-			return null;
-		}
 	}
 
 	//=================================================================
@@ -157,18 +123,22 @@ public class SecurityIntegrationTests extends AbstractWebIntegrationTests {
 		personRepository.deleteAll();
 	}
 
-	@Test(expected = AccessDeniedException.class)
-	public void testUserCredentialsForPeopleDeleteAll() {
+	@Test
+	public void deleteAllPeopleAccessDeniedForUsers() throws Throwable {
 
-		SecurityContextHolder.getContext().setAuthentication(new UsernamePasswordAuthenticationToken("user", "user"));
-		personRepository.deleteAll();
+		SecurityContextHolder.getContext().setAuthentication(new UsernamePasswordAuthenticationToken("user", "user",
+				AuthorityUtils.createAuthorityList("ROLE_USER")));
+
+		assertThat(securityTestUtils.hasAccess(personRepository, "deleteAll"), is(false));
 	}
 
 	@Test
-	public void testAdminCredentialsForPeopleDeleteAll() {
+	public void deleteAllPeopleAccessGrantedForAdmins() throws Throwable {
 
-		SecurityContextHolder.getContext().setAuthentication(new UsernamePasswordAuthenticationToken("admin", "admin"));
-		personRepository.deleteAll();
+		SecurityContextHolder.getContext().setAuthentication(new UsernamePasswordAuthenticationToken("user", "user",
+				AuthorityUtils.createAuthorityList("ROLE_USER", "ROLE_ADMIN")));
+
+		assertThat(securityTestUtils.hasAccess(personRepository, "deleteAll"), is(true));
 	}
 
 	//=================================================================
@@ -179,24 +149,27 @@ public class SecurityIntegrationTests extends AbstractWebIntegrationTests {
 	 * The class is flagged with @Secured("ROLE_USER"), meaning findAll should require an authentication credential,
 	 * but for some reason it does not. This needs to be solved before release.
 	 */
-	@Ignore
 	@Test(expected = AuthenticationCredentialsNotFoundException.class)
 	public void testNoCredentialsForPeopleFindAll() {
 		personRepository.findAll();
 	}
 
 	@Test
-	public void testUserCredentialsForPeopleFindAll() {
+	public void findAllPeopleAccessGrantedForUsers() throws Throwable {
 
-		SecurityContextHolder.getContext().setAuthentication(new UsernamePasswordAuthenticationToken("user", "user"));
-		personRepository.findAll();
+		SecurityContextHolder.getContext().setAuthentication(new UsernamePasswordAuthenticationToken("user", "user",
+				AuthorityUtils.createAuthorityList("ROLE_USER")));
+
+		assertThat(securityTestUtils.hasAccess(personRepository, "findAll"), is(true));
 	}
 
 	@Test
-	public void testAdminCredentialsForPeopleFindAll() {
+	public void findAllPeopleAccessGrantedForAdmins() throws Throwable {
 
-		SecurityContextHolder.getContext().setAuthentication(new UsernamePasswordAuthenticationToken("admin", "admin"));
-		personRepository.findAll();
+		SecurityContextHolder.getContext().setAuthentication(new UsernamePasswordAuthenticationToken("user", "user",
+				AuthorityUtils.createAuthorityList("ROLE_USER", "ROLE_ADMIN")));
+
+		assertThat(securityTestUtils.hasAccess(personRepository, "findAll"), is(true));
 	}
 
 	//=================================================================
@@ -206,18 +179,22 @@ public class SecurityIntegrationTests extends AbstractWebIntegrationTests {
 		orderRepository.deleteAll();
 	}
 
-	@Test(expected = AccessDeniedException.class)
-	public void testUserCredentialsForOrdersDeleteAll() {
+	@Test
+	public void deleteAllOrdersAccessDeniedForUsers() throws Throwable {
 
-		SecurityContextHolder.getContext().setAuthentication(new UsernamePasswordAuthenticationToken("user", "user"));
-		orderRepository.deleteAll();
+		SecurityContextHolder.getContext().setAuthentication(new UsernamePasswordAuthenticationToken("user", "user",
+				AuthorityUtils.createAuthorityList("ROLE_USER")));
+
+		assertThat(securityTestUtils.hasAccess(orderRepository, "deleteAll"), is(false));
 	}
 
 	@Test
-	public void testAdminCredentialsForOrdersDeleteAll() {
+	public void deleteAllOrdersAccessGrantedForAdmins() throws Throwable {
 
-		SecurityContextHolder.getContext().setAuthentication(new UsernamePasswordAuthenticationToken("admin", "admin"));
-		orderRepository.deleteAll();
+		SecurityContextHolder.getContext().setAuthentication(new UsernamePasswordAuthenticationToken("user", "user",
+				AuthorityUtils.createAuthorityList("ROLE_USER", "ROLE_ADMIN")));
+
+		assertThat(securityTestUtils.hasAccess(orderRepository, "deleteAll"), is(true));
 	}
 
 	//=================================================================
@@ -228,30 +205,115 @@ public class SecurityIntegrationTests extends AbstractWebIntegrationTests {
 	 * The class is flagged with @Secured("ROLE_USER"), meaning findAll should require an authentication credential,
 	 * but for some reason it does not. This needs to be solved before release.
 	 */
-	@Ignore
 	@Test(expected = AuthenticationCredentialsNotFoundException.class)
 	public void testNoCredentialsForOrdersFindAll() {
 		orderRepository.findAll();
 	}
 
 	@Test
-	public void testUserCredentialsForOrdersFindAll() {
+	public void findAllOrdersAccessGrantedForUsers() throws Throwable {
 
-		SecurityContextHolder.getContext().setAuthentication(new UsernamePasswordAuthenticationToken("user", "user"));
-		orderRepository.findAll();
+		SecurityContextHolder.getContext().setAuthentication(new UsernamePasswordAuthenticationToken("user", "user",
+				AuthorityUtils.createAuthorityList("ROLE_USER")));
+
+		assertThat(securityTestUtils.hasAccess(orderRepository, "findAll"), is(true));
 	}
 
 	@Test
-	public void testAdminCredentialsForOrdersFindAll() {
+	public void findAllOrdersAccessGrantedForAdmins() throws Throwable {
 
-		SecurityContextHolder.getContext().setAuthentication(new UsernamePasswordAuthenticationToken("admin", "admin"));
-		orderRepository.findAll();
+		SecurityContextHolder.getContext().setAuthentication(new UsernamePasswordAuthenticationToken("user", "user",
+				AuthorityUtils.createAuthorityList("ROLE_USER", "ROLE_ADMIN")));
+
+		assertThat(securityTestUtils.hasAccess(orderRepository, "findAll"), is(true));
 	}
 
 	//=================================================================
+	// At the root level, repos that are entirely blocked by security
+	// annotations should not be visible.
+	//=================================================================
 
 	@Test
-	public void testNoCredentialsForAlpsPeoplePeople() throws Exception {
+	public void testNoCredentialsForRootLinks() throws Exception {
+
+		Link peopleLink = linkTestUtils.discoverUnique("/", "people");
+		assertThat(peopleLink, is(nullValue()));
+
+		Link ordersLink = linkTestUtils.discoverUnique("/", "orders");
+		assertThat(peopleLink, is(nullValue()));
+
+		Link budgetsLink = linkTestUtils.discoverUnique("/", "budgets");
+		assertThat(budgetsLink, is(nullValue()));
+
+		Link profileLink = linkTestUtils.discoverUnique("/", "profile");
+		assertThat(profileLink, is(notNullValue()));
+	}
+
+	@Test
+	public void testUserCredentialsForRootLinks() throws Exception {
+
+		SecurityContextHolder.getContext().setAuthentication(new UsernamePasswordAuthenticationToken("user", "user",
+				AuthorityUtils.createAuthorityList("ROLE_USER")));
+
+		Link peopleLink = linkTestUtils.discoverUnique("/", "people");
+		assertThat(peopleLink, is(notNullValue()));
+
+		Link ordersLink = linkTestUtils.discoverUnique("/", "orders");
+		assertThat(peopleLink, is(notNullValue()));
+
+		Link profileLink = linkTestUtils.discoverUnique("/", "profile");
+		assertThat(profileLink, is(notNullValue()));
+
+		Link budgetsLink = linkTestUtils.discoverUnique("/", "budgets");
+		assertThat(budgetsLink, is(nullValue()));
+	}
+
+	@Test
+	public void testAdminCredentialsForRootLinks() throws Exception {
+
+		SecurityContextHolder.getContext().setAuthentication(new UsernamePasswordAuthenticationToken("user", "user",
+				AuthorityUtils.createAuthorityList("ROLE_USER", "ROLE_ADMIN")));
+
+		Link peopleLink = linkTestUtils.discoverUnique("/", "people");
+		assertThat(peopleLink, is(notNullValue()));
+
+		Link ordersLink = linkTestUtils.discoverUnique("/", "orders");
+		assertThat(peopleLink, is(notNullValue()));
+
+		Link profileLink = linkTestUtils.discoverUnique("/", "profile");
+		assertThat(profileLink, is(notNullValue()));
+
+		Link budgetsLink = linkTestUtils.discoverUnique("/", "budgets");
+		assertThat(budgetsLink, is(nullValue()));
+	}
+
+	@Test
+	public void testManagerCredentialsForRootLinks() throws Exception {
+
+		SecurityContextHolder.getContext().setAuthentication(new UsernamePasswordAuthenticationToken("user", "user",
+				AuthorityUtils.createAuthorityList("ROLE_USER", "ROLE_MANAGER")));
+
+		Link peopleLink = linkTestUtils.discoverUnique("/", "people");
+		assertThat(peopleLink, is(notNullValue()));
+
+		Link ordersLink = linkTestUtils.discoverUnique("/", "orders");
+		assertThat(peopleLink, is(notNullValue()));
+
+		Link budgetsLink = linkTestUtils.discoverUnique("/", "budgets");
+		assertThat(budgetsLink, is(notNullValue()));
+
+		Link profileLink = linkTestUtils.discoverUnique("/", "profile");
+		assertThat(profileLink, is(notNullValue()));
+	}
+
+	//=================================================================
+	// When exploring ALPS, repos that are blocked entirely shouldn't
+	// appear as top level descriptors.
+	// Operations that are blocked should be filtered out.
+	//=================================================================
+
+	@Test
+	public void testNoCredentialsForAlpsPeople() throws Exception {
 
 		Link profileLink = linkTestUtils.discoverUnique("/", "profile");
 		Link peopleLink = linkTestUtils.discoverUnique(profileLink.getHref(), "people");
@@ -277,5 +339,7 @@ public class SecurityIntegrationTests extends AbstractWebIntegrationTests {
 				andExpect(jsonPath("$.descriptors[*].id", hasItems("get-orders", "get-order", "create-orders",
 				"update-order", "patch-order", "delete-order")));
 	}
+
+	//=================================================================
 
 }
