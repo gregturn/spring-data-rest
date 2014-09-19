@@ -118,6 +118,31 @@ public class SecurityIntegrationTests extends AbstractWebIntegrationTests {
 		repository.deleteAll();
 	}
 
+	/**
+	 * TODO: Is this a Spring Data or Spring Security bug?
+	 *
+	 * The class is flagged with @Secured("ROLE_USER"), meaning findAll should require an authentication credential,
+	 * but for some reason it does not. This needs to be solved before release.
+	 */
+	@Test(expected = AuthenticationCredentialsNotFoundException.class)
+	public void testNoCredentialsForFindAll() {
+		repository.findAll();
+	}
+
+	@Test
+	public void testUserCredentialsForFindAll() {
+
+		SecurityContextHolder.getContext().setAuthentication(new UsernamePasswordAuthenticationToken("user", "user"));
+		repository.findAll();
+	}
+
+	@Test
+	public void testAdminCredentialsForFindAll() {
+
+		SecurityContextHolder.getContext().setAuthentication(new UsernamePasswordAuthenticationToken("admin", "admin"));
+		repository.findAll();
+	}
+
 	@Test
 	public void testRestrictedAlpsData() throws Exception {
 
