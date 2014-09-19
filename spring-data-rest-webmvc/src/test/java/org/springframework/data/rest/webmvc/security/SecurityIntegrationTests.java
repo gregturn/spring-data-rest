@@ -70,6 +70,7 @@ public class SecurityIntegrationTests extends AbstractWebIntegrationTests {
 
 		@Bean
 		public LinkDiscoverer alpsLinkDiscoverer() {
+
 			return new JsonPathLinkDiscoverer("$.descriptors[?(@.name == '%s')].href",
 					MediaType.valueOf("application/alps+json"));
 		}
@@ -105,12 +106,14 @@ public class SecurityIntegrationTests extends AbstractWebIntegrationTests {
 
 	@Test(expected = AccessDeniedException.class)
 	public void testUserCredentialsForDeleteAll() {
+
 		SecurityContextHolder.getContext().setAuthentication(new UsernamePasswordAuthenticationToken("user", "user"));
 		repository.deleteAll();
 	}
 
 	@Test
 	public void testAdminCredentialsForDeleteAll() {
+
 		SecurityContextHolder.getContext().setAuthentication(new UsernamePasswordAuthenticationToken("admin", "admin"));
 		repository.deleteAll();
 	}

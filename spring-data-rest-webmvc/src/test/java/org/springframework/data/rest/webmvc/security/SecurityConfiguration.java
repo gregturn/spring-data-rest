@@ -13,6 +13,7 @@ public class SecurityConfiguration extends WebSecurityConfigurerAdapter {
 
 	@Autowired
 	public void configureAuth(AuthenticationManagerBuilder auth) throws Exception {
+
 		auth.inMemoryAuthentication()
 			.withUser("user").password("user").roles("USER").and()
 			.withUser("admin").password("admin").roles("USER", "ADMIN");
@@ -20,6 +21,7 @@ public class SecurityConfiguration extends WebSecurityConfigurerAdapter {
 
 	@Override
 	protected void configure(HttpSecurity http) throws Exception {
+
 		http.
 			authorizeRequests()
 				.anyRequest().authenticated()
