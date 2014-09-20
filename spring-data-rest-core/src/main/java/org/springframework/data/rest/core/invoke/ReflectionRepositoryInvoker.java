@@ -43,7 +43,7 @@ import org.springframework.util.StringUtils;
  * 
  * @author Oliver Gierke
  */
-class ReflectionRepositoryInvoker implements RepositoryInvoker {
+public class ReflectionRepositoryInvoker implements RepositoryInvoker {
 
 	private static final AnnotationAttribute PARAM_ANNOTATION = new AnnotationAttribute(Param.class);
 
@@ -292,5 +292,30 @@ class ReflectionRepositoryInvoker implements RepositoryInvoker {
 	protected Serializable convertId(Serializable id) {
 		Assert.notNull(id, "Id must not be null!");
 		return conversionService.convert(id, information.getIdType());
+	}
+
+	@Override
+	public Object getRepository() {
+		return repository;
+	}
+
+	@Override
+	public Method getFindAllMethod() {
+		return methods.getFindAllMethod();
+	}
+
+	@Override
+	public Method getFindOneMethod() {
+		return methods.getFindOneMethod();
+	}
+
+	@Override
+	public Method getSaveMethod() {
+		return methods.getSaveMethod();
+	}
+
+	@Override
+	public Method getDeleteMethod() {
+		return methods.getDeleteMethod();
 	}
 }

@@ -38,4 +38,14 @@ public interface RepositoryInvoker extends RepositoryInvocationInformation {
 	void invokeDelete(Serializable serializable);
 
 	Object invokeQueryMethod(Method method, Map<String, String[]> parameters, Pageable pageable, Sort sort);
+
+	Object getRepository();
+
+	Method getFindAllMethod();
+
+	Method getFindOneMethod();
+
+	Method getSaveMethod();
+
+	Method getDeleteMethod();
 }

@@ -15,8 +15,11 @@
  */
 package org.springframework.data.rest.webmvc.security;
 
-import static org.hamcrest.CoreMatchers.*;
+import static org.hamcrest.Matchers.*;
 import static org.junit.Assert.*;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 import java.util.Arrays;
 
@@ -27,8 +30,13 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.rest.webmvc.AbstractWebIntegrationTests;
+import org.springframework.data.rest.webmvc.alps.RootResourceInformationToAlpsDescriptorConverter;
 import org.springframework.data.rest.webmvc.jpa.JpaRepositoryConfig;
+import org.springframework.data.rest.webmvc.jpa.PersonRepository;
 import org.springframework.hateoas.Link;
+import org.springframework.hateoas.LinkDiscoverer;
+import org.springframework.hateoas.core.JsonPathLinkDiscoverer;
+import org.springframework.http.MediaType;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import org.springframework.transaction.annotation.Transactional;
@@ -39,44 +47,82 @@ import org.springframework.transaction.annotation.Transactional;
  * @author Greg Turnquist
  */
 @RunWith(SpringJUnit4ClassRunner.class)
-@ContextConfiguration(classes = {JpaRepositoryConfig.class, NoSecurityIntegrationTests.NoSecurityConfiguration.class})
+@ContextConfiguration(classes = {JpaRepositoryConfig.class, NoSecurityIntegrationTests.Config.class})
 @Transactional
 public class NoSecurityIntegrationTests extends AbstractWebIntegrationTests {
 
 	@Autowired ApplicationContext context;
-	@Autowired SecurityChecker securityChecker;
+	@Autowired NoSecurityChecker securityChecker;
 
-	@Override
-	protected Iterable<String> expectedRootLinkRels() {
-		return Arrays.asList("people", "authors", "books");
-	}
-
-	@Override
-	public void setUp() {
-		super.setUp();
-	}
-
-	@Test
-	public void testSecuritySettings() {
-
-		assertThat(securityChecker.secured(), is(false));
-		assertThat(context.getBean(NoSecurityChecker.class), notNullValue());
-	}
-
-	@Test
-	public void testGettingPeople() throws Exception {
-
-		Link peopleLink = linkTestUtils.discoverUnique("people");
-	}
+	@Autowired PersonRepository personRepository;
+	@Autowired RootResourceInformationToAlpsDescriptorConverter alpsDescriptorConverter;
 
 	@Configuration
-	static class NoSecurityConfiguration {
+	static class Config {
 
 		@Bean
 		public NoSecurityChecker securityChecker() {
 			return new NoSecurityChecker();
 		}
 
+		@Bean
+		public LinkDiscoverer alpsLinkDiscoverer() {
+
+			return new JsonPathLinkDiscoverer("$.descriptors[?(@.name == '%s')].href",
+					MediaType.valueOf("application/alps+json"));
+		}
+
+	}
+
+	@Override
+	protected Iterable<String> expectedRootLinkRels() {
+		return Arrays.asList("people", "orders");
+	}
+
+	@Override
+	public void setUp() {
+		super.setUp();
+		alpsDescriptorConverter.setSecurityChecker(securityChecker);
+	}
+
+	@Test
+	public void testSecuritySettings() {
+		assertThat(securityChecker.secured(), is(false));
+	}
+
+	@Test
+	public void testThatPersonDeleteAllIsAvailable() {
+		personRepository.deleteAll();
+	}
+
+	@Test
+	public void testThatPersonFindAllIsAvailable() {
+		personRepository.findAll();
+	}
+
+	@Test
+	public void testThatAllRootLinksAreVisible() throws Exception {
+
+		Link peopleLink = linkTestUtils.discoverUnique("/", "people");
+		assertThat(peopleLink, is(notNullValue()));
+
+		Link ordersLink = linkTestUtils.discoverUnique("/", "orders");
+		assertThat(peopleLink, is(notNullValue()));
+
+		Link profileLink = linkTestUtils.discoverUnique("/", "profile");
+		assertThat(profileLink, is(notNullValue()));
+	}
+
+	@Test
+	public void testAlpsPeople() throws Exception {
+
+		Link profileLink = linkTestUtils.discoverUnique("/", "profile");
+		Link peopleLink = linkTestUtils.discoverUnique(profileLink.getHref(), "people");
+
+		mvc.perform(get(peopleLink.getHref())).//
+				andDo(print()).//
+				andExpect(jsonPath("$.descriptors[*].id", hasItems("get-people", "get-person", "create-people",
+				"update-person", "patch-person", "delete-person")));
 	}
 
 }

@@ -6,7 +6,7 @@ import org.springframework.security.access.annotation.Secured;
 
 @Secured("ROLE_USER")
 @RepositoryRestResource(collectionResourceRel = "people", path = "people")
-public interface SecurePersonRepository extends CrudRepository<Person, Long> {
+public interface SecuredPersonRepository extends CrudRepository<Person, Long> {
 
 	@Secured("ROLE_ADMIN")
 	@Override

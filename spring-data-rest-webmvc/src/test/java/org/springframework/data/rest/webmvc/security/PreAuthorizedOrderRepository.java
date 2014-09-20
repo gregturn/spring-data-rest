@@ -25,7 +25,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
  */
 @PreAuthorize("hasRole('ROLE_USER')")
 @RepositoryRestResource
-public interface SecureOrderRepository extends CrudRepository<Order, Long> {
+public interface PreAuthorizedOrderRepository extends CrudRepository<Order, Long> {
 
 	@PreAuthorize("hasRole('ROLE_ADMIN')")
 	@Override

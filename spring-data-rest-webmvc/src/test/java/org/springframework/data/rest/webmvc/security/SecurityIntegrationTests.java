@@ -21,13 +21,9 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-import java.lang.reflect.Method;
 import java.util.Arrays;
 
-import org.aopalliance.intercept.MethodInvocation;
-import org.apache.commons.lang.reflect.MethodUtils;
 import org.junit.After;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -40,13 +36,11 @@ import org.springframework.hateoas.Link;
 import org.springframework.hateoas.LinkDiscoverer;
 import org.springframework.hateoas.core.JsonPathLinkDiscoverer;
 import org.springframework.http.MediaType;
-import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.access.intercept.aopalliance.MethodSecurityInterceptor;
 import org.springframework.security.authentication.AuthenticationCredentialsNotFoundException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.AuthorityUtils;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.util.SimpleMethodInvocation;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import org.springframework.transaction.annotation.Transactional;
@@ -69,8 +63,8 @@ public class SecurityIntegrationTests extends AbstractWebIntegrationTests {
 
 	@Autowired MethodSecurityInterceptor smi;
 
-	@Autowired SecurePersonRepository personRepository;
-	@Autowired SecureOrderRepository orderRepository;
+	@Autowired SecuredPersonRepository personRepository;
+	@Autowired PreAuthorizedOrderRepository orderRepository;
 	@Autowired RootResourceInformationToAlpsDescriptorConverter alpsDescriptorConverter;
 
 	LinkTestUtils linkTestUtils;
@@ -95,7 +89,7 @@ public class SecurityIntegrationTests extends AbstractWebIntegrationTests {
 
 	@Override
 	protected Iterable<String> expectedRootLinkRels() {
-		return Arrays.asList("people", "orders");
+		return Arrays.asList("people", "orders", "budgets");
 	}
 
 	@Override
@@ -317,25 +311,22 @@ public class SecurityIntegrationTests extends AbstractWebIntegrationTests {
 	//=================================================================
 
 	@Test
-	public void testNoCredentialsForAlpsPeople() throws Exception {
+	public void testNoCredentialsForAlps() throws Exception {
 
 		Link profileLink = linkTestUtils.discoverUnique("/", "profile");
+
 		Link peopleLink = linkTestUtils.discoverUnique(profileLink.getHref(), "people");
-
 		assertThat(peopleLink, is(nullValue()));
-	}
 
-	@Test
-	public void testNoCredentialsForAlpsOrders() throws Exception {
-
-		Link profileLink = linkTestUtils.discoverUnique("/", "profile");
 		Link ordersLink = linkTestUtils.discoverUnique(profileLink.getHref(), "orders");
+		assertThat(ordersLink, is(nullValue()));
 
+		Link budgetsLink = linkTestUtils.discoverUnique(profileLink.getHref(), "budgets");
 		assertThat(ordersLink, is(nullValue()));
 	}
 
 	@Test
-	public void testUserCredentialsForAlpsPeople() throws Exception {
+	public void testUserCredentialsForAlpsSecuredPeople() throws Exception {
 
 		SecurityContextHolder.getContext().setAuthentication(new UsernamePasswordAuthenticationToken("user", "user",
 				AuthorityUtils.createAuthorityList("ROLE_USER")));
@@ -353,7 +344,7 @@ public class SecurityIntegrationTests extends AbstractWebIntegrationTests {
 	}
 
 	@Test
-	public void testUserCredentialsForAlpsOrders() throws Exception {
+	public void testUserCredentialsForAlpsPreAuthorizedOrders() throws Exception {
 
 		SecurityContextHolder.getContext().setAuthentication(new UsernamePasswordAuthenticationToken("user", "user",
 				AuthorityUtils.createAuthorityList("ROLE_USER")));
@@ -371,7 +362,7 @@ public class SecurityIntegrationTests extends AbstractWebIntegrationTests {
 	}
 
 	@Test
-	public void testAdminCredentialsForAlpsPeople() throws Exception {
+	public void testAdminCredentialsForAlpsSecuredPeople() throws Exception {
 
 		SecurityContextHolder.getContext().setAuthentication(new UsernamePasswordAuthenticationToken("user", "user",
 				AuthorityUtils.createAuthorityList("ROLE_USER", "ROLE_ADMIN")));
@@ -388,7 +379,7 @@ public class SecurityIntegrationTests extends AbstractWebIntegrationTests {
 	}
 
 	@Test
-	public void testAdminCredentialsForAlpsOrders() throws Exception {
+	public void testAdminCredentialsForAlpsPreAuthorizedOrders() throws Exception {
 
 		SecurityContextHolder.getContext().setAuthentication(new UsernamePasswordAuthenticationToken("user", "user",
 				AuthorityUtils.createAuthorityList("ROLE_USER", "ROLE_ADMIN")));
@@ -403,6 +394,7 @@ public class SecurityIntegrationTests extends AbstractWebIntegrationTests {
 				andExpect(jsonPath("$.descriptors[*].id", hasItems("get-orders", "get-order", "create-orders",
 				"update-order", "patch-order", "delete-order")));
 	}
+
 	//=================================================================
 
 }
