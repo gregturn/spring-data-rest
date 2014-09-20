@@ -35,6 +35,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.rest.webmvc.AbstractWebIntegrationTests;
 import org.springframework.data.rest.webmvc.LinkTestUtils;
+import org.springframework.data.rest.webmvc.alps.RootResourceInformationToAlpsDescriptorConverter;
 import org.springframework.hateoas.Link;
 import org.springframework.hateoas.LinkDiscoverer;
 import org.springframework.hateoas.core.JsonPathLinkDiscoverer;
@@ -64,12 +65,13 @@ import org.springframework.web.context.WebApplicationContext;
 public class SecurityIntegrationTests extends AbstractWebIntegrationTests {
 
 	@Autowired WebApplicationContext context;
-	@Autowired SecurityChecker securityChecker;
+	@Autowired SpringSecurityChecker securityChecker;
 
 	@Autowired MethodSecurityInterceptor smi;
 
 	@Autowired SecurePersonRepository personRepository;
 	@Autowired SecureOrderRepository orderRepository;
+	@Autowired RootResourceInformationToAlpsDescriptorConverter alpsDescriptorConverter;
 
 	LinkTestUtils linkTestUtils;
 	SecurityTestUtils securityTestUtils;
@@ -102,6 +104,8 @@ public class SecurityIntegrationTests extends AbstractWebIntegrationTests {
 		super.setUp();
 		linkTestUtils = new LinkTestUtils(mvc, discoverers);
 		securityTestUtils = new SecurityTestUtils(smi);
+		alpsDescriptorConverter.setSecurityChecker(securityChecker);
+		securityChecker.setSmi(smi);
 	}
 
 	@After
@@ -318,16 +322,76 @@ public class SecurityIntegrationTests extends AbstractWebIntegrationTests {
 		Link profileLink = linkTestUtils.discoverUnique("/", "profile");
 		Link peopleLink = linkTestUtils.discoverUnique(profileLink.getHref(), "people");
 
-		assertThat(peopleLink, is(notNullValue()));
-
-		mvc.perform(get(peopleLink.getHref())).//
-				//andDo(print()).//
-				andExpect(jsonPath("$.descriptors[*].id", hasItems("get-people", "get-person", "create-people",
-					"update-person", "patch-person", "delete-person")));
+		assertThat(peopleLink, is(nullValue()));
 	}
 
 	@Test
 	public void testNoCredentialsForAlpsOrders() throws Exception {
+
+		Link profileLink = linkTestUtils.discoverUnique("/", "profile");
+		Link ordersLink = linkTestUtils.discoverUnique(profileLink.getHref(), "orders");
+
+		assertThat(ordersLink, is(nullValue()));
+	}
+
+	@Test
+	public void testUserCredentialsForAlpsPeople() throws Exception {
+
+		SecurityContextHolder.getContext().setAuthentication(new UsernamePasswordAuthenticationToken("user", "user",
+				AuthorityUtils.createAuthorityList("ROLE_USER")));
+
+		Link profileLink = linkTestUtils.discoverUnique("/", "profile");
+		Link peopleLink = linkTestUtils.discoverUnique(profileLink.getHref(), "people");
+
+		assertThat(peopleLink, is(notNullValue()));
+
+		mvc.perform(get(peopleLink.getHref())).//
+				andDo(print()).//
+				andExpect(jsonPath("$.descriptors[*].id", hasItems("get-people", "get-person", "create-people",
+				"update-person", "patch-person"))).//
+				andExpect(jsonPath("$.descriptors[*].id", not(hasItems("delete-person"))));
+	}
+
+	@Test
+	public void testUserCredentialsForAlpsOrders() throws Exception {
+
+		SecurityContextHolder.getContext().setAuthentication(new UsernamePasswordAuthenticationToken("user", "user",
+				AuthorityUtils.createAuthorityList("ROLE_USER")));
+
+		Link profileLink = linkTestUtils.discoverUnique("/", "profile");
+		Link ordersLink = linkTestUtils.discoverUnique(profileLink.getHref(), "orders");
+
+		assertThat(ordersLink, is(notNullValue()));
+
+		mvc.perform(get(ordersLink.getHref())).//
+				andDo(print()).//
+				andExpect(jsonPath("$.descriptors[*].id", hasItems("get-orders", "get-order", "create-orders",
+				"update-order", "patch-order"))).//
+				andExpect(jsonPath("$.descriptors[*].id", not(hasItems("delete-order"))));
+	}
+
+	@Test
+	public void testAdminCredentialsForAlpsPeople() throws Exception {
+
+		SecurityContextHolder.getContext().setAuthentication(new UsernamePasswordAuthenticationToken("user", "user",
+				AuthorityUtils.createAuthorityList("ROLE_USER", "ROLE_ADMIN")));
+
+		Link profileLink = linkTestUtils.discoverUnique("/", "profile");
+		Link peopleLink = linkTestUtils.discoverUnique(profileLink.getHref(), "people");
+
+		assertThat(peopleLink, is(notNullValue()));
+
+		mvc.perform(get(peopleLink.getHref())).//
+				andDo(print()).//
+				andExpect(jsonPath("$.descriptors[*].id", hasItems("get-people", "get-person", "create-people",
+				"update-person", "patch-person", "delete-person")));
+	}
+
+	@Test
+	public void testAdminCredentialsForAlpsOrders() throws Exception {
+
+		SecurityContextHolder.getContext().setAuthentication(new UsernamePasswordAuthenticationToken("user", "user",
+				AuthorityUtils.createAuthorityList("ROLE_USER", "ROLE_ADMIN")));
 
 		Link profileLink = linkTestUtils.discoverUnique("/", "profile");
 		Link ordersLink = linkTestUtils.discoverUnique(profileLink.getHref(), "orders");
@@ -339,7 +403,6 @@ public class SecurityIntegrationTests extends AbstractWebIntegrationTests {
 				andExpect(jsonPath("$.descriptors[*].id", hasItems("get-orders", "get-order", "create-orders",
 				"update-order", "patch-order", "delete-order")));
 	}
-
 	//=================================================================
 
 }

@@ -10,5 +10,17 @@ public interface SecurePersonRepository extends CrudRepository<Person, Long> {
 
 	@Secured("ROLE_ADMIN")
 	@Override
+	void delete(Long aLong);
+
+	@Secured("ROLE_ADMIN")
+	@Override
+	void delete(Person person);
+
+	@Secured("ROLE_ADMIN")
+	@Override
+	void delete(Iterable<? extends Person> persons);
+
+	@Secured("ROLE_ADMIN")
+	@Override
 	void deleteAll();
 }

@@ -25,6 +25,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.NoSuchMessageException;
 import org.springframework.context.support.MessageSourceAccessor;
 import org.springframework.data.mapping.Association;
@@ -38,6 +39,8 @@ import org.springframework.data.repository.support.Repositories;
 import org.springframework.data.rest.core.annotation.Description;
 import org.springframework.data.rest.core.config.ProjectionDefinitionConfiguration;
 import org.springframework.data.rest.core.config.RepositoryRestConfiguration;
+import org.springframework.data.rest.core.invoke.CrudRepositoryInvoker;
+import org.springframework.data.rest.core.invoke.RepositoryInvoker;
 import org.springframework.data.rest.core.mapping.AnnotationBasedResourceDescription;
 import org.springframework.data.rest.core.mapping.MethodResourceMapping;
 import org.springframework.data.rest.core.mapping.ParameterMetadata;
@@ -51,6 +54,7 @@ import org.springframework.data.rest.webmvc.RootResourceInformation;
 import org.springframework.data.rest.webmvc.json.JacksonMetadata;
 import org.springframework.data.rest.webmvc.mapping.AssociationLinks;
 import org.springframework.data.rest.webmvc.mapping.PropertyMappings;
+import org.springframework.data.rest.webmvc.security.SecurityChecker;
 import org.springframework.hateoas.EntityLinks;
 import org.springframework.hateoas.Link;
 import org.springframework.hateoas.TemplateVariable;
@@ -66,6 +70,7 @@ import org.springframework.http.HttpMethod;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.introspect.AnnotatedMethod;
 import com.fasterxml.jackson.databind.introspect.BeanPropertyDefinition;
+import org.springframework.security.access.intercept.aopalliance.MethodSecurityInterceptor;
 
 /**
  * Converter to create Alps {@link Descriptor} instances for a {@link RootResourceInformation}.
@@ -83,6 +88,8 @@ public class RootResourceInformationToAlpsDescriptorConverter {
 	private final MessageSourceAccessor messageSource;
 	private final RepositoryRestConfiguration configuration;
 	private final ObjectMapper mapper;
+
+	private SecurityChecker securityChecker;
 
 	/**
 	 * Creates a new {@link RootResourceInformationToAlpsDescriptorConverter} instance.
@@ -123,14 +130,14 @@ public class RootResourceInformationToAlpsDescriptorConverter {
 
 		for (HttpMethod method : resourceInformation.getSupportedMethods(ResourceType.COLLECTION)) {
 
-			if (!UNDOCUMENTED_METHODS.contains(method)) {
+			if (!UNDOCUMENTED_METHODS.contains(method) && securityChecker.hasAccess(resourceInformation, method)) {
 				descriptors.add(buildCollectionResourceDescriptor(type, resourceInformation, representationDescriptor, method));
 			}
 		}
 
 		for (HttpMethod method : resourceInformation.getSupportedMethods(ResourceType.ITEM)) {
 
-			if (!UNDOCUMENTED_METHODS.contains(method)) {
+			if (!UNDOCUMENTED_METHODS.contains(method) && securityChecker.hasAccess(resourceInformation, method)) {
 				descriptors.add(buildItemResourceDescriptor(resourceInformation, representationDescriptor, method));
 			}
 		}
@@ -160,14 +167,20 @@ public class RootResourceInformationToAlpsDescriptorConverter {
 		nestedDescriptors.addAll(getPaginationDescriptors(type, method));
 		nestedDescriptors.addAll(getProjectionDescriptor(type, method));
 
+		System.out.println("Creating ALPS descriptor for " + method.toString() + "-" + metadata.getRel());
+
 		Type descriptorType = getType(method);
-		return descriptor().//
+		Descriptor descriptor = descriptor().//
 				id(prefix(method).concat(metadata.getRel())).//
 				name(metadata.getRel()).//
 				type(descriptorType).//
 				doc(getDocFor(metadata.getDescription())).//
 				rt("#" + representationDescriptor.getId()).//
 				descriptors(nestedDescriptors).build();
+
+		System.out.println("Created " + descriptor);
+
+		return descriptor;
 	}
 
 	/**
@@ -238,7 +251,9 @@ public class RootResourceInformationToAlpsDescriptorConverter {
 		PersistentEntity<?, ?> entity = resourceInformation.getPersistentEntity();
 		ResourceMetadata metadata = mappings.getMappingFor(entity.getType());
 
-		return descriptor().//
+		System.out.println("Building descriptor for " + method.toString() + "-" + metadata.getRel());
+
+		Descriptor descriptor = descriptor().//
 				id(prefix(method).concat(metadata.getItemResourceRel())).//
 				name(metadata.getItemResourceRel()).//
 				type(getType(method)).//
@@ -246,6 +261,11 @@ public class RootResourceInformationToAlpsDescriptorConverter {
 				rt("#".concat(representationDescriptor.getId())). //
 				descriptors(getProjectionDescriptor(entity.getType(), method)).//
 				build();
+
+		System.out.println(descriptor);
+		System.out.println("SecurityChecker is " + securityChecker);
+
+		return descriptor;
 	}
 
 	private List<Descriptor> getProjectionDescriptor(Class<?> type, HttpMethod method) {
@@ -450,4 +470,13 @@ public class RootResourceInformationToAlpsDescriptorConverter {
 				return null;
 		}
 	}
+
+	public SecurityChecker getSecurityChecker() {
+		return securityChecker;
+	}
+
+	public void setSecurityChecker(SecurityChecker securityChecker) {
+		this.securityChecker = securityChecker;
+	}
+
 }

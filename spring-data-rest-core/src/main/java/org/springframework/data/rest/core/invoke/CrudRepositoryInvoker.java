@@ -31,7 +31,7 @@ import org.springframework.data.repository.core.RepositoryInformation;
  * 
  * @author Oliver Gierke
  */
-class CrudRepositoryInvoker extends ReflectionRepositoryInvoker {
+public class CrudRepositoryInvoker extends ReflectionRepositoryInvoker {
 
 	private final CrudRepository<Object, Serializable> repository;
 	private final CrudMethods crudMethods;

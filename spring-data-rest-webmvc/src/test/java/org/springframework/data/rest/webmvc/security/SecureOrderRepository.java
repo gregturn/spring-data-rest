@@ -29,5 +29,17 @@ public interface SecureOrderRepository extends CrudRepository<Order, Long> {
 
 	@PreAuthorize("hasRole('ROLE_ADMIN')")
 	@Override
+	void delete(Long aLong);
+
+	@PreAuthorize("hasRole('ROLE_ADMIN')")
+	@Override
+	void delete(Order order);
+
+	@PreAuthorize("hasRole('ROLE_ADMIN')")
+	@Override
+	void delete(Iterable<? extends Order> orders);
+
+	@PreAuthorize("hasRole('ROLE_ADMIN')")
+	@Override
 	void deleteAll();
 }
