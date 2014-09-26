@@ -24,6 +24,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import java.util.Arrays;
 
 import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -36,6 +37,7 @@ import org.springframework.hateoas.Link;
 import org.springframework.hateoas.LinkDiscoverer;
 import org.springframework.hateoas.core.JsonPathLinkDiscoverer;
 import org.springframework.http.MediaType;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.access.intercept.aopalliance.MethodSecurityInterceptor;
 import org.springframework.security.authentication.AuthenticationCredentialsNotFoundException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -67,6 +69,8 @@ public class SecurityIntegrationTests extends AbstractWebIntegrationTests {
 	@Autowired PreAuthorizedOrderRepository orderRepository;
 	@Autowired RootResourceInformationToAlpsDescriptorConverter alpsDescriptorConverter;
 
+	@Autowired Pojo pojo;
+
 	LinkTestUtils linkTestUtils;
 	SecurityTestUtils securityTestUtils;
 
@@ -83,6 +87,11 @@ public class SecurityIntegrationTests extends AbstractWebIntegrationTests {
 
 			return new JsonPathLinkDiscoverer("$.descriptors[?(@.name == '%s')].href",
 					MediaType.valueOf("application/alps+json"));
+		}
+
+		@Bean
+		public Pojo pojo() {
+			return new Pojo();
 		}
 
 	}
@@ -102,7 +111,7 @@ public class SecurityIntegrationTests extends AbstractWebIntegrationTests {
 		securityChecker.setSmi(smi);
 	}
 
-	@After
+	@Before
 	public void clearContext() {
 		SecurityContextHolder.clearContext();
 	}
@@ -396,5 +405,26 @@ public class SecurityIntegrationTests extends AbstractWebIntegrationTests {
 	}
 
 	//=================================================================
+
+	@Test(expected = AuthenticationCredentialsNotFoundException.class)
+	public void testNoCredentialsOnNonSpringDataClassLevelSecurity() {
+		pojo.nothing();
+	}
+
+	@Test(expected = AccessDeniedException.class)
+	public void testUserCredentialsOnNonSpringDataClassLevelSecurity() {
+
+		SecurityContextHolder.getContext().setAuthentication(new UsernamePasswordAuthenticationToken("user", "user",
+				AuthorityUtils.createAuthorityList("ROLE_USER")));
+		pojo.nothing();
+	}
+
+	@Test
+	public void testAdminCredentialsOnNonSpringDataClassLevelSecurity() {
+
+		SecurityContextHolder.getContext().setAuthentication(new UsernamePasswordAuthenticationToken("user", "user",
+				AuthorityUtils.createAuthorityList("ROLE_USER", "ROLE_ADMIN")));
+		pojo.nothing();
+	}
 
 }
