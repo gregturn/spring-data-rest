@@ -27,31 +27,28 @@ var CustomPostForm = Backbone.View.extend({
 
 	className: 'modal fade',
 
+	/**
+	 * Perform a POST/PUT operation on the resource.
+	 *
+	 * @param e
+	 */
 	createNewResource: function (e) {
 		e.preventDefault();
 
 		var self = this;
 
-		var data = {};
-		Object.keys(this.schema.properties).forEach(function (property) {
-			if (!(self.schema.properties[property]).hasOwnProperty('format')) {
-				data[property] = self.$('input[name=' + property + ']').val();
-			}
-		});
-
 		var opts = {
 			url: this.$('.url').val(),
-			headers: HAL.parseHeaders(this.$('.headers').val()),
+			headers: {'Content-Type': 'application/json'},
 			method: this.$('.method').val(),
-			data: JSON.stringify(data)
+			data: JSON.stringify(this.editor.getValue())
 		};
 
-		var request = HAL.client.request(opts);
-		request.done(function (response) {
+		HAL.client.request(opts).done(function (response) {
 			self.vent.trigger('response', {resource: response, jqxhr: jqxhr});
-		}).fail(function () {
+		}).fail(function (e) {
 			self.vent.trigger('fail-response', {jqxhr: jqxhr});
-		}).always(function () {
+		}).always(function (e) {
 			self.vent.trigger('response-headers', {jqxhr: jqxhr});
 			window.location.hash = 'NON-GET:' + opts.url;
 		});
@@ -59,6 +56,12 @@ var CustomPostForm = Backbone.View.extend({
 		this.$el.modal('hide');
 	},
 
+	/**
+	 * Draw the dialog after fetching the resource's JSON Schema metadata.
+	 *
+	 * @param opts
+	 * @returns {CustomPostForm}
+	 */
 	render: function (opts) {
 		var self = this;
 
@@ -79,12 +82,41 @@ var CustomPostForm = Backbone.View.extend({
 		}).done(function (schema) {
 			self.schema = schema;
 			self.$el.html(self.template({href: self.href, schema: self.schema, userDefinedHeaders: headersString}));
+			self.loadJsonEditor(self.schema);
 			self.$el.modal();
 		});
 
 		return this;
 	},
 
+	/**
+	 * Load the JSON Schema-driven editor.
+	 *
+	 * @see https://github.com/jdorn/json-editor
+	 */
+	loadJsonEditor: function (schema) {
+		var self = this;
+
+		Object.keys(self.schema.properties).forEach(function (property) {
+			if (self.schema.properties[property].hasOwnProperty('format')) {
+				delete self.schema.properties[property];
+			}
+		});
+
+		// See https://github.com/jdorn/json-editor#options for more customizing options
+		this.editor = new window.JSONEditor(this.$('#jsoneditor')[0], {
+			theme: 'bootstrap2',
+			schema: schema,
+			form_root_name: schema.title,
+			disable_collapse: true,
+			disable_edit_json: true,
+			disable_properties: true
+		});
+	},
+
+	/**
+	 * Look up the HTML template.
+	 */
 	template: _.template($('#dynamic-request-template').html())
 });
 
